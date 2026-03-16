@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.schemas.user import MentorApplicationSummary, UserSummary
 
@@ -12,9 +12,19 @@ def _validate_required_text(value: str, message: str) -> str:
 
 
 class MentoringPostCreate(BaseModel):
-    title: str
-    description: str | None = None
-    major: str
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "title": "백엔드 멘토링을 받고 싶어요",
+                "description": "JWT 인증과 SQLAlchemy 구조 설계에 대한 멘토링이 필요합니다.",
+                "major": "컴퓨터공학",
+            }
+        }
+    )
+
+    title: str = Field(..., description="멘토링 게시글 제목")
+    description: str | None = Field(default=None, description="멘토링 상세 설명")
+    major: str = Field(..., description="원하는 멘토 전공")
 
     @field_validator("title")
     @classmethod
@@ -28,9 +38,19 @@ class MentoringPostCreate(BaseModel):
 
 
 class MentoringPostUpdate(BaseModel):
-    title: str
-    description: str | None = None
-    major: str
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "title": "FastAPI 구조 멘토링을 받고 싶어요",
+                "description": "프로젝트 구조와 예외 처리 방식을 같이 검토받고 싶습니다.",
+                "major": "소프트웨어공학",
+            }
+        }
+    )
+
+    title: str = Field(..., description="수정할 게시글 제목")
+    description: str | None = Field(default=None, description="수정할 게시글 상세 설명")
+    major: str = Field(..., description="수정할 원하는 멘토 전공")
 
     @field_validator("title")
     @classmethod
@@ -44,26 +64,70 @@ class MentoringPostUpdate(BaseModel):
 
 
 class MentoringPostListItem(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "id": 1,
+                "title": "백엔드 멘토링이 필요해요",
+                "description": "FastAPI 프로젝트 구조와 인증 설계를 배우고 싶습니다.",
+                "major": "컴퓨터공학",
+                "created_at": "2026-03-16T14:00:00",
+            }
+        },
+    )
 
-    id: int
-    title: str
-    description: str | None = None
-    major: str
-    created_at: datetime
+    id: int = Field(..., description="게시글 ID")
+    title: str = Field(..., description="게시글 제목")
+    description: str | None = Field(default=None, description="게시글 상세 설명")
+    major: str = Field(..., description="원하는 전공")
+    created_at: datetime = Field(..., description="게시글 생성 시각")
 
 
 class MentoringPostDetail(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "id": 1,
+                "title": "백엔드 멘토링이 필요해요",
+                "description": "FastAPI 프로젝트 구조와 인증 설계를 배우고 싶습니다.",
+                "major": "컴퓨터공학",
+                "created_at": "2026-03-16T14:00:00",
+                "author": {
+                    "id": 1,
+                    "name": "김멘티",
+                    "major": "컴퓨터공학",
+                },
+            }
+        },
+    )
 
-    id: int
-    title: str
-    description: str | None = None
-    major: str
-    created_at: datetime
-    author: UserSummary
+    id: int = Field(..., description="게시글 ID")
+    title: str = Field(..., description="게시글 제목")
+    description: str | None = Field(default=None, description="게시글 상세 설명")
+    major: str = Field(..., description="원하는 전공")
+    created_at: datetime = Field(..., description="게시글 생성 시각")
+    author: UserSummary = Field(..., description="게시글 작성자 정보")
 
 
 class MentorApplicationsResponse(BaseModel):
-    post_id: int
-    mentors: list[MentorApplicationSummary]
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "post_id": 1,
+                "mentors": [
+                    {
+                        "id": 2,
+                        "name": "박멘토",
+                        "major": "소프트웨어공학",
+                        "tech_stack": "Python, Django, FastAPI",
+                        "profile_image": "https://example.com/images/mentor-a.png",
+                    }
+                ],
+            }
+        }
+    )
+
+    post_id: int = Field(..., description="게시글 ID")
+    mentors: list[MentorApplicationSummary] = Field(..., description="지원한 멘토 목록")

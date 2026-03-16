@@ -16,19 +16,44 @@ async def lifespan(_: FastAPI):
 app = FastAPI(
     title="Little-BE Mentoring API",
     version="1.0.0",
-    description="멘토링 매칭 서비스를 위한 FastAPI REST API 서버",
+    description=(
+        "멘티가 멘토링 요청 게시글을 작성하고 멘토 지원자를 관리할 수 있는 REST API입니다.\n\n"
+        "인증 방법:\n"
+        "1. `POST /auth/login` 으로 JWT 토큰을 발급받습니다.\n"
+        "2. Swagger 우측 상단 `Authorize` 버튼에서 `Bearer <token>` 형식으로 입력합니다.\n"
+        "3. 이후 `/posts` 하위 API를 호출합니다."
+    ),
     lifespan=lifespan,
+    contact={
+        "name": "Little-BE API",
+        "url": "https://github.com/Little-DSM/Little-BE",
+    },
+    openapi_tags=[
+        {"name": "auth", "description": "JWT 토큰 발급 및 인증 관련 API"},
+        {"name": "posts", "description": "멘토링 게시글 생성, 조회, 수정, 삭제 및 지원자 조회 API"},
+        {"name": "health", "description": "서버 상태 확인 API"},
+    ],
 )
 
 app.include_router(auth_router)
 app.include_router(posts_router)
 
 
-@app.get("/", tags=["health"])
+@app.get(
+    "/",
+    tags=["health"],
+    summary="루트 헬스체크",
+    description="서버가 실행 중인지 간단한 메시지로 확인합니다.",
+)
 async def read_root() -> dict[str, str]:
     return {"message": "Little-BE mentoring API server is running"}
 
 
-@app.get("/health", tags=["health"])
+@app.get(
+    "/health",
+    tags=["health"],
+    summary="상세 헬스체크",
+    description="API 서버의 기본 상태를 확인합니다.",
+)
 async def health_check() -> dict[str, str]:
     return {"status": "ok"}
