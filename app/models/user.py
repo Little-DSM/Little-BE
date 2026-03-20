@@ -19,3 +19,8 @@ class User(Base):
         back_populates="mentor",
         cascade="all, delete-orphan",
     )
+    social_accounts = relationship(
+        "SocialAccount",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )

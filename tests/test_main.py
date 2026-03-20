@@ -81,3 +81,40 @@ def test_author_can_get_applications() -> None:
 
     assert response.status_code == 200
     assert len(response.json()["mentors"]) == 2
+
+
+def test_google_login_url_requires_settings(monkeypatch) -> None:
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "")
+
+    with TestClient(app) as client:
+        response = client.get("/auth/google/login")
+
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Google OAuth 설정이 누락되었습니다"}
+
+
+def test_google_id_token_login_success(monkeypatch) -> None:
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "dummy-client-id")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "dummy-client-secret")
+
+    def fake_verify(self, id_token_value: str):
+        assert id_token_value == "dummy-id-token"
+        return {
+            "sub": "google-sub-123",
+            "name": "Google Tester",
+            "email": "tester@example.com",
+            "picture": "https://example.com/profile.png",
+        }
+
+    monkeypatch.setattr(
+        "app.services.auth_service.AuthService._verify_google_id_token",
+        fake_verify,
+    )
+
+    with TestClient(app) as client:
+        response = client.post("/auth/google/token", json={"id_token": "dummy-id-token"})
+
+    assert response.status_code == 200
+    assert response.json()["token_type"] == "bearer"
+    assert response.json()["access_token"]

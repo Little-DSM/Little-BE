@@ -25,6 +25,23 @@ The API will be available at:
 - Swagger UI: `http://127.0.0.1:8000/docs`
 - ReDoc: `http://127.0.0.1:8000/redoc`
 
+## Google OAuth setup
+
+Set environment variables before running server:
+
+```bash
+export GOOGLE_CLIENT_ID="your-google-client-id"
+export GOOGLE_CLIENT_SECRET="your-google-client-secret"
+export GOOGLE_REDIRECT_URI="http://127.0.0.1:8000/auth/google/callback"
+export GOOGLE_FRONTEND_REDIRECT_URI="http://127.0.0.1:3000/oauth/callback"
+```
+
+Google OAuth endpoints:
+
+- `GET /auth/google/login`
+- `POST /auth/google/callback`
+- `POST /auth/google/token`
+
 ## Run tests
 
 ```bash

@@ -29,7 +29,7 @@ app = FastAPI(
         "url": "https://github.com/Little-DSM/Little-BE",
     },
     openapi_tags=[
-        {"name": "auth", "description": "JWT 토큰 발급 및 인증 관련 API"},
+        {"name": "auth", "description": "JWT 토큰 발급, 데모 로그인, Google OAuth 인증 API"},
         {"name": "posts", "description": "멘토링 게시글 생성, 조회, 수정, 삭제 및 지원자 조회 API"},
         {"name": "health", "description": "서버 상태 확인 API"},
     ],
