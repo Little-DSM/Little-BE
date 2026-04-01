@@ -192,3 +192,39 @@ def test_get_mentor_detail() -> None:
     assert response.status_code == 200
     assert response.json()["id"] == 2
     assert "application_count" in response.json()
+
+
+def test_apply_and_select_mentor_flow() -> None:
+    with TestClient(app) as client:
+        mentee_pair = get_token_pair(client, user_id=1)
+        mentor_pair = get_token_pair(client, user_id=2)
+
+        mentee_headers = {"Authorization": f"Bearer {mentee_pair['access_token']}"}
+        mentor_headers = {"Authorization": f"Bearer {mentor_pair['access_token']}"}
+
+        create_post_response = client.post(
+            "/posts",
+            json={
+                "title": "자료구조 멘토링 원해요",
+                "description": "트리/그래프를 집중적으로 배우고 싶어요",
+                "major": "컴퓨터공학",
+            },
+            headers=mentee_headers,
+        )
+        assert create_post_response.status_code == 201
+        post_id = create_post_response.json()["id"]
+
+        apply_response = client.post(f"/posts/{post_id}/apply", headers=mentor_headers)
+        assert apply_response.status_code == 201
+
+        select_response = client.post(
+            f"/posts/{post_id}/select-mentor",
+            json={"mentor_id": 2},
+            headers=mentee_headers,
+        )
+        assert select_response.status_code == 200
+        assert select_response.json()["mentor"]["id"] == 2
+
+        selected_response = client.get(f"/posts/{post_id}/selected-mentor", headers=mentee_headers)
+        assert selected_response.status_code == 200
+        assert selected_response.json()["mentor"]["id"] == 2
