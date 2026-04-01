@@ -41,6 +41,10 @@ export GOOGLE_FRONTEND_REDIRECT_URI="http://127.0.0.1:3000/oauth/callback"
 - `GET /auth/google/login`
 - `POST /auth/google/callback`
 - `POST /auth/google/token`
+- `POST /auth/refresh`
+- `POST /auth/logout`
+
+기본 로그인/Google 로그인 응답에는 `access_token`, `refresh_token`이 함께 내려옵니다.
 
 ## 테스트
 
