@@ -11,6 +11,8 @@ from app.schemas.post import (
     MentoringPostDetail,
     MentoringPostListItem,
     MentoringPostUpdate,
+    MentorSelectRequest,
+    MentorSelectResponse,
 )
 from app.schemas.user import MentorApplicationSummary
 from app.services.post_service import PostService
@@ -146,4 +148,77 @@ def get_applications(
     return MentorApplicationsResponse(
         post_id=post_id,
         mentors=[MentorApplicationSummary.model_validate(mentor) for mentor in mentors],
+    )
+
+
+@router.post(
+    "/{post_id}/apply",
+    status_code=status.HTTP_201_CREATED,
+    summary="멘토 지원",
+    description="로그인한 사용자가 멘토로 게시글에 지원합니다.",
+    responses={
+        201: {"description": "멘토 지원 성공"},
+        400: {"model": ErrorResponse, "description": "중복 지원 또는 본인 게시글 지원"},
+        401: {"model": ErrorResponse, "description": "인증 실패"},
+        404: {"model": ErrorResponse, "description": "게시글을 찾을 수 없음"},
+    },
+)
+def apply_to_post(
+    post_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, str]:
+    PostService(db).apply_to_post(post_id, current_user)
+    return {"message": "멘토 지원이 완료되었습니다"}
+
+
+@router.post(
+    "/{post_id}/select-mentor",
+    response_model=MentorSelectResponse,
+    summary="멘토 확정",
+    description="게시글 작성자인 멘티가 지원자 중 멘토를 최종 확정합니다.",
+    responses={
+        200: {"description": "멘토 확정 성공"},
+        400: {"model": ErrorResponse, "description": "지원하지 않은 멘토 선택"},
+        401: {"model": ErrorResponse, "description": "인증 실패"},
+        403: {"model": ErrorResponse, "description": "작성자 권한 없음"},
+        404: {"model": ErrorResponse, "description": "게시글 또는 멘토를 찾을 수 없음"},
+    },
+)
+def select_mentor(
+    post_id: int,
+    payload: MentorSelectRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> MentorSelectResponse:
+    match = PostService(db).select_mentor(post_id, payload.mentor_id, current_user)
+    return MentorSelectResponse(
+        post_id=post_id,
+        mentor=MentorApplicationSummary.model_validate(match.mentor),
+        selected_at=match.selected_at,
+    )
+
+
+@router.get(
+    "/{post_id}/selected-mentor",
+    response_model=MentorSelectResponse,
+    summary="확정 멘토 조회",
+    description="게시글 작성자인 멘티가 최종 확정한 멘토를 조회합니다.",
+    responses={
+        200: {"description": "확정 멘토 조회 성공"},
+        401: {"model": ErrorResponse, "description": "인증 실패"},
+        403: {"model": ErrorResponse, "description": "작성자 권한 없음"},
+        404: {"model": ErrorResponse, "description": "확정 멘토 없음 또는 게시글 없음"},
+    },
+)
+def get_selected_mentor(
+    post_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> MentorSelectResponse:
+    match = PostService(db).get_selected_mentor(post_id, current_user)
+    return MentorSelectResponse(
+        post_id=post_id,
+        mentor=MentorApplicationSummary.model_validate(match.mentor),
+        selected_at=match.selected_at,
     )

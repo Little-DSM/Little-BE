@@ -29,3 +29,15 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    mentoring_matches = relationship(
+        "MentoringMatch",
+        foreign_keys="MentoringMatch.mentor_id",
+        back_populates="mentor",
+        cascade="all, delete-orphan",
+    )
+    selected_matches = relationship(
+        "MentoringMatch",
+        foreign_keys="MentoringMatch.selected_by_id",
+        back_populates="selected_by",
+        cascade="all, delete-orphan",
+    )

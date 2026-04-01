@@ -2,7 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, joinedload
 
-from app.models import MentoringApplication, MentoringPost, User
+from app.models import MentoringApplication, MentoringMatch, MentoringPost, User
 from app.schemas.post import MentoringPostCreate, MentoringPostUpdate
 
 
@@ -85,6 +85,82 @@ class PostService:
             .order_by(User.id.asc())
         )
         return list(self.db.scalars(stmt).all())
+
+    def apply_to_post(self, post_id: int, mentor: User) -> MentoringApplication:
+        post = self.get_post(post_id)
+        if post.author_id == mentor.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="본인 게시글에는 지원할 수 없습니다",
+            )
+
+        exists_stmt = select(MentoringApplication).where(
+            MentoringApplication.post_id == post_id,
+            MentoringApplication.mentor_id == mentor.id,
+        )
+        if self.db.scalar(exists_stmt):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="이미 지원한 게시글입니다",
+            )
+
+        application = MentoringApplication(post_id=post_id, mentor_id=mentor.id)
+        self.db.add(application)
+        self.db.commit()
+        self.db.refresh(application)
+        return application
+
+    def select_mentor(self, post_id: int, mentor_id: int, user: User) -> MentoringMatch:
+        self._get_owned_post(post_id, user.id)
+
+        application_stmt = select(MentoringApplication).where(
+            MentoringApplication.post_id == post_id,
+            MentoringApplication.mentor_id == mentor_id,
+        )
+        if self.db.scalar(application_stmt) is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="해당 멘토는 이 게시글에 지원하지 않았습니다",
+            )
+
+        mentor = self.db.get(User, mentor_id)
+        if mentor is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="멘토를 찾을 수 없습니다",
+            )
+
+        match_stmt = select(MentoringMatch).where(MentoringMatch.post_id == post_id)
+        match = self.db.scalar(match_stmt)
+        if match is None:
+            match = MentoringMatch(
+                post_id=post_id,
+                mentor_id=mentor_id,
+                selected_by_id=user.id,
+            )
+            self.db.add(match)
+        else:
+            match.mentor_id = mentor_id
+            match.selected_by_id = user.id
+
+        self.db.commit()
+        self.db.refresh(match)
+        return match
+
+    def get_selected_mentor(self, post_id: int, user: User) -> MentoringMatch:
+        post = self._get_owned_post(post_id, user.id)
+        match_stmt = (
+            select(MentoringMatch)
+            .options(joinedload(MentoringMatch.mentor))
+            .where(MentoringMatch.post_id == post.id)
+        )
+        match = self.db.scalar(match_stmt)
+        if match is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="아직 확정된 멘토가 없습니다",
+            )
+        return match
 
     def _get_owned_post(self, post_id: int, user_id: int) -> MentoringPost:
         post = self.db.get(MentoringPost, post_id)

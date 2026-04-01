@@ -131,3 +131,37 @@ class MentorApplicationsResponse(BaseModel):
 
     post_id: int = Field(..., description="게시글 ID")
     mentors: list[MentorApplicationSummary] = Field(..., description="지원한 멘토 목록")
+
+
+class MentorSelectRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "mentor_id": 2,
+            }
+        }
+    )
+
+    mentor_id: int = Field(..., description="확정할 멘토 사용자 ID")
+
+
+class MentorSelectResponse(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "post_id": 1,
+                "mentor": {
+                    "id": 2,
+                    "name": "박멘토",
+                    "major": "소프트웨어공학",
+                    "tech_stack": "Python, Django, FastAPI",
+                    "profile_image": "https://example.com/images/mentor-a.png",
+                },
+                "selected_at": "2026-04-01T10:30:00",
+            }
+        }
+    )
+
+    post_id: int = Field(..., description="게시글 ID")
+    mentor: MentorApplicationSummary = Field(..., description="확정된 멘토")
+    selected_at: datetime = Field(..., description="멘토 확정 시각")

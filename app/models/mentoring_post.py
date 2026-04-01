@@ -22,3 +22,9 @@ class MentoringPost(Base):
         back_populates="post",
         cascade="all, delete-orphan",
     )
+    match = relationship(
+        "MentoringMatch",
+        back_populates="post",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
