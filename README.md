@@ -34,6 +34,9 @@ export GOOGLE_CLIENT_ID="your-google-client-id"
 export GOOGLE_CLIENT_SECRET="your-google-client-secret"
 export GOOGLE_REDIRECT_URI="http://127.0.0.1:8001/auth/google/callback"
 export GOOGLE_FRONTEND_REDIRECT_URI="http://127.0.0.1:3000/oauth/callback"
+export JWT_SECRET_KEY="9f3a2c7e5b8d4a1c6f0e9b2d7a3c8e1f4b6d9a2c7e5f1b3a8c6d0e4f9a2b7c1d"
+export ACCESS_TOKEN_EXPIRE="120"
+export REFRESH_TOKEN_EXPIRE="7"
 ```
 
 관련 인증 API:
