@@ -9,6 +9,16 @@ def get_token(client: TestClient, user_id: int = 1) -> str:
     return response.json()["access_token"]
 
 
+def get_token_pair(client: TestClient, user_id: int = 1) -> dict[str, str]:
+    response = client.post("/auth/login", json={"user_id": user_id})
+    assert response.status_code == 200
+    body = response.json()
+    return {
+        "access_token": body["access_token"],
+        "refresh_token": body["refresh_token"],
+    }
+
+
 def test_auth_is_required() -> None:
     with TestClient(app) as client:
         response = client.get("/posts")
@@ -118,3 +128,67 @@ def test_google_id_token_login_success(monkeypatch) -> None:
     assert response.status_code == 200
     assert response.json()["token_type"] == "bearer"
     assert response.json()["access_token"]
+    assert response.json()["refresh_token"]
+
+
+def test_refresh_and_logout_flow() -> None:
+    with TestClient(app) as client:
+        token_pair = get_token_pair(client, user_id=1)
+
+        refresh_response = client.post(
+            "/auth/refresh",
+            json={"refresh_token": token_pair["refresh_token"]},
+        )
+        assert refresh_response.status_code == 200
+        new_pair = refresh_response.json()
+        assert new_pair["access_token"]
+        assert new_pair["refresh_token"]
+        assert new_pair["refresh_token"] != token_pair["refresh_token"]
+
+        headers = {"Authorization": f"Bearer {new_pair['access_token']}"}
+        logout_response = client.post(
+            "/auth/logout",
+            json={"refresh_token": new_pair["refresh_token"]},
+            headers=headers,
+        )
+        assert logout_response.status_code == 200
+
+        fail_refresh_response = client.post(
+            "/auth/refresh",
+            json={"refresh_token": new_pair["refresh_token"]},
+        )
+        assert fail_refresh_response.status_code == 401
+        assert fail_refresh_response.json() == {"detail": "이미 로그아웃된 refresh token 입니다"}
+
+
+def test_post_search() -> None:
+    with TestClient(app) as client:
+        token = get_token(client, user_id=1)
+        headers = {"Authorization": f"Bearer {token}"}
+
+        create_response = client.post(
+            "/posts",
+            json={
+                "title": "React 멘토링 요청",
+                "description": "프론트엔드 상태관리 고민",
+                "major": "소프트웨어공학",
+            },
+            headers=headers,
+        )
+        assert create_response.status_code == 201
+
+        search_response = client.get("/posts", params={"keyword": "React"}, headers=headers)
+        assert search_response.status_code == 200
+        assert any("React" in post["title"] for post in search_response.json())
+
+
+def test_get_mentor_detail() -> None:
+    with TestClient(app) as client:
+        token = get_token(client, user_id=1)
+        headers = {"Authorization": f"Bearer {token}"}
+
+        response = client.get("/mentors/2", headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["id"] == 2
+    assert "application_count" in response.json()
