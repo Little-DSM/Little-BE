@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models import MentoringApplication, MentoringPost, User
@@ -22,8 +22,24 @@ class PostService:
         self.db.refresh(post)
         return self.get_post(post.id)
 
-    def list_posts(self) -> list[MentoringPost]:
-        stmt = select(MentoringPost).order_by(MentoringPost.created_at.desc())
+    def list_posts(
+        self,
+        keyword: str | None = None,
+        major: str | None = None,
+    ) -> list[MentoringPost]:
+        stmt = select(MentoringPost)
+        if keyword and keyword.strip():
+            pattern = f"%{keyword.strip()}%"
+            stmt = stmt.where(
+                or_(
+                    MentoringPost.title.like(pattern),
+                    MentoringPost.description.like(pattern),
+                    MentoringPost.major.like(pattern),
+                )
+            )
+        if major and major.strip():
+            stmt = stmt.where(MentoringPost.major == major.strip())
+        stmt = stmt.order_by(MentoringPost.created_at.desc())
         return list(self.db.scalars(stmt).all())
 
     def get_post(self, post_id: int) -> MentoringPost:

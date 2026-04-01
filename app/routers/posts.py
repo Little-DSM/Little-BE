@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
@@ -50,11 +50,13 @@ def create_post(
     },
 )
 def list_posts(
+    keyword: str | None = Query(default=None, description="제목/설명/전공 통합 검색어"),
+    major: str | None = Query(default=None, description="전공 정확 일치 필터"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[MentoringPostListItem]:
     del current_user
-    posts = PostService(db).list_posts()
+    posts = PostService(db).list_posts(keyword=keyword, major=major)
     return [MentoringPostListItem.model_validate(post) for post in posts]
 
 

@@ -37,3 +37,26 @@ class MentorApplicationSummary(BaseModel):
     major: str = Field(..., description="멘토 전공")
     tech_stack: str | None = Field(default=None, description="멘토 기술 스택")
     profile_image: str | None = Field(default=None, description="멘토 프로필 이미지 URL")
+
+
+class MentorDetailResponse(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "id": 2,
+                "name": "박멘토",
+                "major": "소프트웨어공학",
+                "tech_stack": "Python, Django, FastAPI",
+                "profile_image": "https://example.com/images/mentor-a.png",
+                "application_count": 3,
+            }
+        },
+    )
+
+    id: int = Field(..., description="멘토 사용자 ID")
+    name: str = Field(..., description="멘토 이름")
+    major: str = Field(..., description="멘토 전공")
+    tech_stack: str | None = Field(default=None, description="멘토 기술 스택")
+    profile_image: str | None = Field(default=None, description="멘토 프로필 이미지 URL")
+    application_count: int = Field(..., description="해당 멘토의 전체 지원 횟수")
