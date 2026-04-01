@@ -27,6 +27,22 @@ class TokenResponse(BaseModel):
     token_type: str = Field(default="bearer", description="인증 타입")
 
 
+class AuthTokenPairResponse(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.sample-access",
+                "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.sample-refresh",
+                "token_type": "bearer",
+            }
+        }
+    )
+
+    access_token: str = Field(..., description="JWT 액세스 토큰")
+    refresh_token: str = Field(..., description="refresh token")
+    token_type: str = Field(default="bearer", description="인증 타입")
+
+
 class GoogleAuthUrlResponse(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
@@ -56,3 +72,31 @@ class GoogleIdTokenRequest(BaseModel):
     )
 
     id_token: str = Field(..., description="Google Sign-In에서 받은 ID Token")
+
+
+class RefreshTokenRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.sample-refresh",
+            }
+        }
+    )
+
+    refresh_token: str = Field(..., description="재발급에 사용할 refresh token")
+
+
+class LogoutRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.sample-refresh",
+            }
+        }
+    )
+
+    refresh_token: str = Field(..., description="로그아웃할 세션의 refresh token")
+
+
+class LogoutResponse(BaseModel):
+    message: str = Field(..., description="로그아웃 처리 결과")
