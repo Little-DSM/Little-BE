@@ -1,10 +1,12 @@
 # Little-BE
 
-## Prerequisites
+멘토링 매칭 서비스 백엔드(FastAPI) 프로젝트입니다.
+
+## 요구 사항
 
 - Python 3.11+
 
-## Create a virtual environment
+## 시작하기
 
 ```bash
 python3 -m venv .venv
@@ -13,42 +15,40 @@ python -m pip install --upgrade pip
 pip install -e ".[dev]"
 ```
 
-## Run the development server
+## 서버 실행
 
 ```bash
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --port 8001
 ```
 
-The API will be available at:
+- API: `http://127.0.0.1:8001`
+- Swagger: `http://127.0.0.1:8001/docs`
+- ReDoc: `http://127.0.0.1:8001/redoc`
 
-- `http://127.0.0.1:8000`
-- Swagger UI: `http://127.0.0.1:8000/docs`
-- ReDoc: `http://127.0.0.1:8000/redoc`
+## Google OAuth 설정
 
-## Google OAuth setup
-
-Set environment variables before running server:
+서버 실행 전에 아래 환경변수를 설정하세요.
 
 ```bash
 export GOOGLE_CLIENT_ID="your-google-client-id"
 export GOOGLE_CLIENT_SECRET="your-google-client-secret"
-export GOOGLE_REDIRECT_URI="http://127.0.0.1:8000/auth/google/callback"
+export GOOGLE_REDIRECT_URI="http://127.0.0.1:8001/auth/google/callback"
 export GOOGLE_FRONTEND_REDIRECT_URI="http://127.0.0.1:3000/oauth/callback"
 ```
 
-Google OAuth endpoints:
+관련 인증 API:
 
 - `GET /auth/google/login`
 - `POST /auth/google/callback`
 - `POST /auth/google/token`
 
-## Run tests
+## 테스트
 
 ```bash
 pytest
 ```
 
-## Lint
+## 린트
 
 ```bash
 ruff check .
