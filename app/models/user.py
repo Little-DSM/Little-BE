@@ -9,6 +9,7 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(50), nullable=False)
+    contact: Mapped[str | None] = mapped_column(String(100), nullable=True)
     major: Mapped[str] = mapped_column(String(100), nullable=False)
     tech_stack: Mapped[str | None] = mapped_column(String(255), nullable=True)
     profile_image: Mapped[str | None] = mapped_column(String(255), nullable=True)

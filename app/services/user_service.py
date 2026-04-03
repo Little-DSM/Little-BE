@@ -26,6 +26,7 @@ class UserService:
         return MentorDetailResponse(
             id=user.id,
             name=user.name,
+            contact=user.contact,
             major=user.major,
             tech_stack=user.tech_stack,
             profile_image=user.profile_image,

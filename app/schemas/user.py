@@ -46,6 +46,7 @@ class MentorDetailResponse(BaseModel):
             "example": {
                 "id": 2,
                 "name": "박멘토",
+                "contact": "010-2222-2222",
                 "major": "소프트웨어공학",
                 "tech_stack": "Python, Django, FastAPI",
                 "profile_image": "https://example.com/images/mentor-a.png",
@@ -56,6 +57,7 @@ class MentorDetailResponse(BaseModel):
 
     id: int = Field(..., description="멘토 사용자 ID")
     name: str = Field(..., description="멘토 이름")
+    contact: str | None = Field(default=None, description="멘토 연락처")
     major: str = Field(..., description="멘토 전공")
     tech_stack: str | None = Field(default=None, description="멘토 기술 스택")
     profile_image: str | None = Field(default=None, description="멘토 프로필 이미지 URL")

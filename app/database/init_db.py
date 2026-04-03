@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import inspect, select, text
 from sqlalchemy.orm import Session
 
 from app.database.session import Base, engine
@@ -7,6 +7,7 @@ from app.models import MentoringApplication, MentoringPost, User
 
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
+    _ensure_user_contact_column()
 
     with Session(engine) as session:
         if session.execute(select(User.id)).first():
@@ -14,18 +15,21 @@ def init_db() -> None:
 
         mentee = User(
             name="김멘티",
+            contact="010-1111-1111",
             major="컴퓨터공학",
             tech_stack="Python, FastAPI",
             profile_image="https://example.com/images/mentee.png",
         )
         mentor_a = User(
             name="박멘토",
+            contact="010-2222-2222",
             major="소프트웨어공학",
             tech_stack="Python, Django, FastAPI",
             profile_image="https://example.com/images/mentor-a.png",
         )
         mentor_b = User(
             name="이멘토",
+            contact="010-3333-3333",
             major="인공지능",
             tech_stack="PyTorch, TensorFlow",
             profile_image="https://example.com/images/mentor-b.png",
@@ -49,3 +53,13 @@ def init_db() -> None:
             ]
         )
         session.commit()
+
+
+def _ensure_user_contact_column() -> None:
+    inspector = inspect(engine)
+    user_columns = {column["name"] for column in inspector.get_columns("users")}
+    if "contact" in user_columns:
+        return
+
+    with engine.begin() as connection:
+        connection.execute(text("ALTER TABLE users ADD COLUMN contact VARCHAR(100)"))
