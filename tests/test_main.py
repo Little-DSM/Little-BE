@@ -192,6 +192,7 @@ def test_get_mentor_detail() -> None:
     assert response.status_code == 200
     assert response.json()["id"] == 2
     assert "application_count" in response.json()
+    assert "contact" in response.json()
 
 
 def test_apply_and_select_mentor_flow() -> None:
