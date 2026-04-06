@@ -13,6 +13,7 @@ class PostService:
     def create_post(self, payload: MentoringPostCreate, author: User) -> MentoringPost:
         post = MentoringPost(
             title=payload.title,
+            image_url=payload.image_url,
             description=payload.description,
             major=payload.major,
             author_id=author.id,
@@ -59,6 +60,7 @@ class PostService:
     def update_post(self, post_id: int, payload: MentoringPostUpdate, user: User) -> MentoringPost:
         post = self._get_owned_post(post_id, user.id)
         post.title = payload.title
+        post.image_url = payload.image_url
         post.description = payload.description
         post.major = payload.major
         self.db.commit()

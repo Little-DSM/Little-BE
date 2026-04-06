@@ -10,6 +10,7 @@ def init_db() -> None:
     _ensure_user_email_column()
     _ensure_user_contact_column()
     _ensure_user_introduction_column()
+    _ensure_post_image_column()
 
     with Session(engine) as session:
         if session.execute(select(User.id)).first():
@@ -47,6 +48,7 @@ def init_db() -> None:
 
         post = MentoringPost(
             title="백엔드 멘토링이 필요해요",
+            image_url="https://example.com/images/post-sample.png",
             description="FastAPI 프로젝트 구조와 인증 설계를 배우고 싶습니다.",
             major="컴퓨터공학",
             author_id=mentee.id,
@@ -91,3 +93,13 @@ def _ensure_user_introduction_column() -> None:
 
     with engine.begin() as connection:
         connection.execute(text("ALTER TABLE users ADD COLUMN introduction VARCHAR(500)"))
+
+
+def _ensure_post_image_column() -> None:
+    inspector = inspect(engine)
+    post_columns = {column["name"] for column in inspector.get_columns("mentoring_posts")}
+    if "image_url" in post_columns:
+        return
+
+    with engine.begin() as connection:
+        connection.execute(text("ALTER TABLE mentoring_posts ADD COLUMN image_url VARCHAR(255)"))

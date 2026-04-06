@@ -16,6 +16,7 @@ class MentoringPostCreate(BaseModel):
         json_schema_extra={
             "example": {
                 "title": "백엔드 멘토링을 받고 싶어요",
+                "image_url": "https://example.com/images/mentoring-request.png",
                 "description": "JWT 인증과 SQLAlchemy 구조 설계에 대한 멘토링이 필요합니다.",
                 "major": "컴퓨터공학",
             }
@@ -23,6 +24,7 @@ class MentoringPostCreate(BaseModel):
     )
 
     title: str = Field(..., description="멘토링 게시글 제목")
+    image_url: str | None = Field(default=None, description="멘토링 게시글 대표 이미지 URL")
     description: str | None = Field(default=None, description="멘토링 상세 설명")
     major: str = Field(..., description="원하는 멘토 전공")
 
@@ -42,6 +44,7 @@ class MentoringPostUpdate(BaseModel):
         json_schema_extra={
             "example": {
                 "title": "FastAPI 구조 멘토링을 받고 싶어요",
+                "image_url": "https://example.com/images/updated-mentoring-request.png",
                 "description": "프로젝트 구조와 예외 처리 방식을 같이 검토받고 싶습니다.",
                 "major": "소프트웨어공학",
             }
@@ -49,6 +52,7 @@ class MentoringPostUpdate(BaseModel):
     )
 
     title: str = Field(..., description="수정할 게시글 제목")
+    image_url: str | None = Field(default=None, description="수정할 게시글 대표 이미지 URL")
     description: str | None = Field(default=None, description="수정할 게시글 상세 설명")
     major: str = Field(..., description="수정할 원하는 멘토 전공")
 
@@ -70,6 +74,7 @@ class MentoringPostListItem(BaseModel):
             "example": {
                 "id": 1,
                 "title": "백엔드 멘토링이 필요해요",
+                "image_url": "https://example.com/images/post-sample.png",
                 "description": "FastAPI 프로젝트 구조와 인증 설계를 배우고 싶습니다.",
                 "major": "컴퓨터공학",
                 "created_at": "2026-03-16T14:00:00",
@@ -79,6 +84,7 @@ class MentoringPostListItem(BaseModel):
 
     id: int = Field(..., description="게시글 ID")
     title: str = Field(..., description="게시글 제목")
+    image_url: str | None = Field(default=None, description="게시글 대표 이미지 URL")
     description: str | None = Field(default=None, description="게시글 상세 설명")
     major: str = Field(..., description="원하는 전공")
     created_at: datetime = Field(..., description="게시글 생성 시각")
@@ -91,6 +97,7 @@ class MentoringPostDetail(BaseModel):
             "example": {
                 "id": 1,
                 "title": "백엔드 멘토링이 필요해요",
+                "image_url": "https://example.com/images/post-sample.png",
                 "description": "FastAPI 프로젝트 구조와 인증 설계를 배우고 싶습니다.",
                 "major": "컴퓨터공학",
                 "created_at": "2026-03-16T14:00:00",
@@ -105,6 +112,7 @@ class MentoringPostDetail(BaseModel):
 
     id: int = Field(..., description="게시글 ID")
     title: str = Field(..., description="게시글 제목")
+    image_url: str | None = Field(default=None, description="게시글 대표 이미지 URL")
     description: str | None = Field(default=None, description="게시글 상세 설명")
     major: str = Field(..., description="원하는 전공")
     created_at: datetime = Field(..., description="게시글 생성 시각")
