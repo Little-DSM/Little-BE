@@ -1,3 +1,6 @@
+from datetime import datetime
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -113,3 +116,58 @@ class MyPageUpdateRequest(BaseModel):
     introduction: str | None = Field(default=None, description="수정할 자기소개")
     profile_image: str | None = Field(default=None, description="수정할 프로필 이미지 URL")
     major: str = Field(..., description="수정할 전공", min_length=1)
+
+
+class MentoringProgressItem(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "post_id": 1,
+                "title": "React가 알고 싶어요!",
+                "major": "Frontend",
+                "mentor_id": 2,
+                "mentor_name": "박멘토",
+                "mentor_contact": "010-3000-2000",
+                "status": "IN_PROGRESS",
+                "selected_at": "2026-04-06T11:00:00",
+                "completed_at": None,
+            }
+        }
+    )
+
+    post_id: int = Field(..., description="멘토링 게시글 ID")
+    title: str = Field(..., description="멘토링 게시글 제목")
+    major: str = Field(..., description="멘토링 게시글 전공")
+    mentor_id: int = Field(..., description="확정된 멘토 ID")
+    mentor_name: str = Field(..., description="확정된 멘토 이름")
+    mentor_contact: str = Field(..., description="확정된 멘토 연락처(미등록 시 기본 문구)")
+    status: Literal["IN_PROGRESS", "COMPLETED"] = Field(..., description="멘토링 진행 상태")
+    selected_at: datetime = Field(..., description="멘토 확정 시각")
+    completed_at: datetime | None = Field(
+        default=None,
+        description="멘토링 완료 시각(리뷰 작성 시점)",
+    )
+
+
+class MentoringProgressListResponse(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "items": [
+                    {
+                        "post_id": 1,
+                        "title": "React가 알고 싶어요!",
+                        "major": "Frontend",
+                        "mentor_id": 2,
+                        "mentor_name": "박멘토",
+                        "mentor_contact": "010-3000-2000",
+                        "status": "IN_PROGRESS",
+                        "selected_at": "2026-04-06T11:00:00",
+                        "completed_at": None,
+                    }
+                ]
+            }
+        }
+    )
+
+    items: list[MentoringProgressItem] = Field(..., description="내 멘토링 진행 목록")
