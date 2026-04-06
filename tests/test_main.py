@@ -311,3 +311,53 @@ def test_rating_is_reflected_on_mentor_profile() -> None:
         assert mentor_detail_response.status_code == 200
         assert mentor_detail_response.json()["rating_average"] is not None
         assert mentor_detail_response.json()["rating_count"] >= 1
+
+
+def test_get_mentor_reviews_summary() -> None:
+    with TestClient(app) as client:
+        mentee_pair = get_token_pair(client, user_id=1)
+        mentor_pair = get_token_pair(client, user_id=2)
+
+        mentee_headers = {"Authorization": f"Bearer {mentee_pair['access_token']}"}
+        mentor_headers = {"Authorization": f"Bearer {mentor_pair['access_token']}"}
+
+        create_post_response = client.post(
+            "/posts",
+            json={
+                "title": "자료구조 멘토링 원해요",
+                "image_url": "https://example.com/images/ds-mentoring.png",
+                "description": "트리와 그래프를 같이 보고 싶어요.",
+                "major": "컴퓨터공학",
+            },
+            headers=mentee_headers,
+        )
+        assert create_post_response.status_code == 201
+        post_id = create_post_response.json()["id"]
+
+        assert client.post(f"/posts/{post_id}/apply", headers=mentor_headers).status_code == 201
+        assert (
+            client.post(
+                f"/posts/{post_id}/select-mentor",
+                json={"mentor_id": 2},
+                headers=mentee_headers,
+            ).status_code
+            == 200
+        )
+        assert (
+            client.post(
+                f"/posts/{post_id}/review",
+                json={"rating": 4, "comment": "꼼꼼하게 알려주셨어요."},
+                headers=mentee_headers,
+            ).status_code
+            == 200
+        )
+
+        reviews_response = client.get("/mentors/2/reviews", headers=mentee_headers)
+        assert reviews_response.status_code == 200
+        body = reviews_response.json()
+        assert body["mentor_id"] == 2
+        assert body["total_reviews"] >= 1
+        assert "distribution" in body
+        assert isinstance(body["reviews"], list)
+        assert body["reviews"][0]["post_title"]
+        assert body["reviews"][0]["reviewer_nickname"].startswith("익명의 ")
