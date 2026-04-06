@@ -5,6 +5,7 @@ from app.auth.dependencies import get_current_user
 from app.database.session import get_db
 from app.models import User
 from app.schemas.common import ErrorResponse
+from app.schemas.review import MentorReviewSummaryResponse
 from app.schemas.user import MentorDetailResponse
 from app.services.user_service import UserService
 
@@ -29,3 +30,26 @@ def get_mentor_detail(
 ) -> MentorDetailResponse:
     del current_user
     return UserService(db).get_mentor_detail(mentor_id)
+
+
+@router.get(
+    "/{mentor_id}/reviews",
+    response_model=MentorReviewSummaryResponse,
+    summary="멘토 리뷰 요약/목록 조회",
+    description=(
+        "멘토의 평균 별점, 총 리뷰 수, 별점 분포(1~5점 %), "
+        "리뷰 리스트(익명 닉네임/작성일/게시글 제목/코멘트)를 조회합니다."
+    ),
+    responses={
+        200: {"description": "멘토 리뷰 조회 성공"},
+        401: {"model": ErrorResponse, "description": "인증 실패"},
+        404: {"model": ErrorResponse, "description": "멘토를 찾을 수 없음"},
+    },
+)
+def get_mentor_reviews(
+    mentor_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> MentorReviewSummaryResponse:
+    del current_user
+    return UserService(db).get_mentor_review_summary(mentor_id)
