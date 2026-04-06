@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from app.database.init_db import init_db
 from app.routers.auth import router as auth_router
+from app.routers.me import router as me_router
 from app.routers.mentors import router as mentors_router
 from app.routers.posts import router as posts_router
 
@@ -31,6 +32,7 @@ app = FastAPI(
     },
     openapi_tags=[
         {"name": "auth", "description": "JWT 토큰 발급, 데모 로그인, Google OAuth 인증 API"},
+        {"name": "me", "description": "마이페이지 조회/수정 API"},
         {"name": "posts", "description": "멘토링 게시글 생성, 조회, 수정, 삭제 및 지원자 조회 API"},
         {"name": "mentors", "description": "멘토 상세 정보 조회 API"},
         {"name": "health", "description": "서버 상태 확인 API"},
@@ -38,6 +40,7 @@ app = FastAPI(
 )
 
 app.include_router(auth_router)
+app.include_router(me_router)
 app.include_router(posts_router)
 app.include_router(mentors_router)
 

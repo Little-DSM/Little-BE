@@ -3,7 +3,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import MentoringApplication, User
-from app.schemas.user import MentorDetailResponse
+from app.schemas.user import MentorDetailResponse, MyPageUpdateRequest
 
 
 class UserService:
@@ -32,3 +32,12 @@ class UserService:
             profile_image=user.profile_image,
             application_count=application_count,
         )
+
+    def update_my_profile(self, user: User, payload: MyPageUpdateRequest) -> User:
+        user.name = payload.name.strip()
+        user.introduction = payload.introduction.strip() if payload.introduction else None
+        user.profile_image = payload.profile_image.strip() if payload.profile_image else None
+        user.major = payload.major.strip()
+        self.db.commit()
+        self.db.refresh(user)
+        return user

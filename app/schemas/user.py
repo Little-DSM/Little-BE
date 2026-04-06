@@ -62,3 +62,42 @@ class MentorDetailResponse(BaseModel):
     tech_stack: str | None = Field(default=None, description="멘토 기술 스택")
     profile_image: str | None = Field(default=None, description="멘토 프로필 이미지 URL")
     application_count: int = Field(..., description="해당 멘토의 전체 지원 횟수")
+
+
+class MyPageResponse(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "id": 1,
+                "name": "김멘티",
+                "introduction": "백엔드 개발자로 성장하고 싶은 멘티입니다.",
+                "profile_image": "https://example.com/images/mentee.png",
+                "major": "컴퓨터공학",
+            }
+        },
+    )
+
+    id: int = Field(..., description="사용자 ID")
+    name: str = Field(..., description="이름")
+    introduction: str | None = Field(default=None, description="자기소개")
+    profile_image: str | None = Field(default=None, description="프로필 이미지 URL")
+    major: str = Field(..., description="전공")
+
+
+class MyPageUpdateRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "name": "김멘티",
+                "introduction": "백엔드 개발자로 성장하고 싶은 멘티입니다.",
+                "profile_image": "https://example.com/images/my-profile.png",
+                "major": "컴퓨터공학",
+            }
+        }
+    )
+
+    name: str = Field(..., description="수정할 이름", min_length=1)
+    introduction: str | None = Field(default=None, description="수정할 자기소개")
+    profile_image: str | None = Field(default=None, description="수정할 프로필 이미지 URL")
+    major: str = Field(..., description="수정할 전공", min_length=1)
