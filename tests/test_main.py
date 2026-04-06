@@ -229,3 +229,33 @@ def test_apply_and_select_mentor_flow() -> None:
         selected_response = client.get(f"/posts/{post_id}/selected-mentor", headers=mentee_headers)
         assert selected_response.status_code == 200
         assert selected_response.json()["mentor"]["id"] == 2
+
+
+def test_my_page_get_and_update() -> None:
+    with TestClient(app) as client:
+        token = get_token(client, user_id=1)
+        headers = {"Authorization": f"Bearer {token}"}
+
+        get_response = client.get("/me", headers=headers)
+        assert get_response.status_code == 200
+        assert get_response.json()["name"] == "김멘티"
+        assert "introduction" in get_response.json()
+        assert "profile_image" in get_response.json()
+        assert "major" in get_response.json()
+
+        update_response = client.patch(
+            "/me",
+            json={
+                "name": "업데이트멘티",
+                "introduction": "자기소개를 업데이트했습니다.",
+                "profile_image": "https://example.com/images/updated-profile.png",
+                "major": "소프트웨어공학",
+            },
+            headers=headers,
+        )
+        assert update_response.status_code == 200
+        body = update_response.json()
+        assert body["name"] == "업데이트멘티"
+        assert body["introduction"] == "자기소개를 업데이트했습니다."
+        assert body["profile_image"] == "https://example.com/images/updated-profile.png"
+        assert body["major"] == "소프트웨어공학"
