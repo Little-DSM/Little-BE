@@ -159,6 +159,10 @@ class AuthService:
         )
         social_account = self.db.scalar(stmt)
         if social_account:
+            if claims.get("email") and not social_account.user.email:
+                social_account.user.email = str(claims["email"])
+                self.db.commit()
+                self.db.refresh(social_account.user)
             return social_account.user
 
         name = str(claims.get("name") or "Google User")
@@ -167,6 +171,7 @@ class AuthService:
 
         user = User(
             name=name,
+            email=str(email) if email else None,
             major="미정",
             tech_stack=None,
             profile_image=picture,

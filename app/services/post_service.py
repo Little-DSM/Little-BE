@@ -2,7 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, joinedload
 
-from app.models import MentoringApplication, MentoringMatch, MentoringPost, User
+from app.models import MentoringApplication, MentoringMatch, MentoringPost, MentoringReview, User
 from app.schemas.post import MentoringPostCreate, MentoringPostUpdate
 
 
@@ -161,6 +161,41 @@ class PostService:
                 detail="아직 확정된 멘토가 없습니다",
             )
         return match
+
+    def create_or_update_review(
+        self,
+        post_id: int,
+        user: User,
+        rating: int,
+        comment: str | None,
+    ) -> MentoringReview:
+        post = self._get_owned_post(post_id, user.id)
+        match_stmt = select(MentoringMatch).where(MentoringMatch.post_id == post.id)
+        match = self.db.scalar(match_stmt)
+        if match is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="멘토 확정 후에만 별점을 남길 수 있습니다",
+            )
+
+        review_stmt = select(MentoringReview).where(MentoringReview.match_id == match.id)
+        review = self.db.scalar(review_stmt)
+        if review is None:
+            review = MentoringReview(
+                match_id=match.id,
+                mentor_id=match.mentor_id,
+                mentee_id=user.id,
+                rating=rating,
+                comment=comment.strip() if comment else None,
+            )
+            self.db.add(review)
+        else:
+            review.rating = rating
+            review.comment = comment.strip() if comment else None
+
+        self.db.commit()
+        self.db.refresh(review)
+        return review
 
     def _get_owned_post(self, post_id: int, user_id: int) -> MentoringPost:
         post = self.db.get(MentoringPost, post_id)

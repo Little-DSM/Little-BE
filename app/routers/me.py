@@ -21,8 +21,11 @@ router = APIRouter(prefix="/me", tags=["me"])
         401: {"model": ErrorResponse, "description": "인증 실패"},
     },
 )
-def get_my_profile(current_user: User = Depends(get_current_user)) -> MyPageResponse:
-    return MyPageResponse.model_validate(current_user)
+def get_my_profile(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> MyPageResponse:
+    return UserService(db).get_my_profile(current_user)
 
 
 @router.patch(
@@ -41,5 +44,4 @@ def update_my_profile(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> MyPageResponse:
-    updated_user = UserService(db).update_my_profile(current_user, payload)
-    return MyPageResponse.model_validate(updated_user)
+    return UserService(db).update_my_profile(current_user, payload)

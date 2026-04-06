@@ -165,3 +165,39 @@ class MentorSelectResponse(BaseModel):
     post_id: int = Field(..., description="게시글 ID")
     mentor: MentorApplicationSummary = Field(..., description="확정된 멘토")
     selected_at: datetime = Field(..., description="멘토 확정 시각")
+
+
+class ReviewCreateRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "rating": 5,
+                "comment": "설명이 정말 꼼꼼하고 도움이 많이 됐어요.",
+            }
+        }
+    )
+
+    rating: int = Field(..., ge=1, le=5, description="별점(1~5)")
+    comment: str | None = Field(default=None, description="리뷰 코멘트")
+
+
+class ReviewResponse(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "post_id": 1,
+                "mentor_id": 2,
+                "mentee_id": 1,
+                "rating": 5,
+                "comment": "설명이 정말 꼼꼼하고 도움이 많이 됐어요.",
+                "created_at": "2026-04-06T12:00:00",
+            }
+        }
+    )
+
+    post_id: int
+    mentor_id: int
+    mentee_id: int
+    rating: int
+    comment: str | None = None
+    created_at: datetime

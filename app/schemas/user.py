@@ -46,10 +46,13 @@ class MentorDetailResponse(BaseModel):
             "example": {
                 "id": 2,
                 "name": "박멘토",
+                "email": "mentor-a@example.com",
                 "contact": "010-2222-2222",
                 "major": "소프트웨어공학",
                 "tech_stack": "Python, Django, FastAPI",
                 "profile_image": "https://example.com/images/mentor-a.png",
+                "rating_average": 4.5,
+                "rating_count": 6,
                 "application_count": 3,
             }
         },
@@ -57,10 +60,13 @@ class MentorDetailResponse(BaseModel):
 
     id: int = Field(..., description="멘토 사용자 ID")
     name: str = Field(..., description="멘토 이름")
+    email: str | None = Field(default=None, description="멘토 이메일")
     contact: str | None = Field(default=None, description="멘토 연락처")
     major: str = Field(..., description="멘토 전공")
     tech_stack: str | None = Field(default=None, description="멘토 기술 스택")
     profile_image: str | None = Field(default=None, description="멘토 프로필 이미지 URL")
+    rating_average: float | None = Field(default=None, description="멘토 평균 별점")
+    rating_count: int = Field(..., description="멘토 별점 개수")
     application_count: int = Field(..., description="해당 멘토의 전체 지원 횟수")
 
 
@@ -71,18 +77,24 @@ class MyPageResponse(BaseModel):
             "example": {
                 "id": 1,
                 "name": "김멘티",
+                "email": "mentee@example.com",
                 "introduction": "백엔드 개발자로 성장하고 싶은 멘티입니다.",
                 "profile_image": "https://example.com/images/mentee.png",
                 "major": "컴퓨터공학",
+                "rating_average": 4.8,
+                "rating_count": 10,
             }
         },
     )
 
     id: int = Field(..., description="사용자 ID")
     name: str = Field(..., description="이름")
+    email: str | None = Field(default=None, description="이메일")
     introduction: str | None = Field(default=None, description="자기소개")
     profile_image: str | None = Field(default=None, description="프로필 이미지 URL")
     major: str = Field(..., description="전공")
+    rating_average: float | None = Field(default=None, description="내 평균 별점")
+    rating_count: int = Field(..., description="내 별점 개수")
 
 
 class MyPageUpdateRequest(BaseModel):

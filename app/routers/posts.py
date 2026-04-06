@@ -13,6 +13,8 @@ from app.schemas.post import (
     MentoringPostUpdate,
     MentorSelectRequest,
     MentorSelectResponse,
+    ReviewCreateRequest,
+    ReviewResponse,
 )
 from app.schemas.user import MentorApplicationSummary
 from app.services.post_service import PostService
@@ -221,4 +223,39 @@ def get_selected_mentor(
         post_id=post_id,
         mentor=MentorApplicationSummary.model_validate(match.mentor),
         selected_at=match.selected_at,
+    )
+
+
+@router.post(
+    "/{post_id}/review",
+    response_model=ReviewResponse,
+    summary="멘토 별점 등록",
+    description="게시글 작성자인 멘티가 확정된 멘토에게 별점/리뷰를 남깁니다.",
+    responses={
+        200: {"description": "별점 등록 성공"},
+        400: {"model": ErrorResponse, "description": "멘토 확정 전 리뷰 등록 시도"},
+        401: {"model": ErrorResponse, "description": "인증 실패"},
+        403: {"model": ErrorResponse, "description": "작성자 권한 없음"},
+        404: {"model": ErrorResponse, "description": "게시글을 찾을 수 없음"},
+    },
+)
+def create_review(
+    post_id: int,
+    payload: ReviewCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ReviewResponse:
+    review = PostService(db).create_or_update_review(
+        post_id=post_id,
+        user=current_user,
+        rating=payload.rating,
+        comment=payload.comment,
+    )
+    return ReviewResponse(
+        post_id=post_id,
+        mentor_id=review.mentor_id,
+        mentee_id=review.mentee_id,
+        rating=review.rating,
+        comment=review.comment,
+        created_at=review.created_at,
     )

@@ -7,6 +7,7 @@ from app.models import MentoringApplication, MentoringPost, User
 
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
+    _ensure_user_email_column()
     _ensure_user_contact_column()
     _ensure_user_introduction_column()
 
@@ -16,6 +17,7 @@ def init_db() -> None:
 
         mentee = User(
             name="김멘티",
+            email="mentee@example.com",
             contact="010-1111-1111",
             introduction="백엔드 실무 역량을 키우고 싶은 멘티입니다.",
             major="컴퓨터공학",
@@ -24,6 +26,7 @@ def init_db() -> None:
         )
         mentor_a = User(
             name="박멘토",
+            email="mentor-a@example.com",
             contact="010-2222-2222",
             introduction="웹 백엔드 아키텍처와 코드 리뷰 멘토링을 진행합니다.",
             major="소프트웨어공학",
@@ -32,6 +35,7 @@ def init_db() -> None:
         )
         mentor_b = User(
             name="이멘토",
+            email="mentor-b@example.com",
             contact="010-3333-3333",
             introduction="AI 모델링과 실습 중심 멘토링을 진행합니다.",
             major="인공지능",
@@ -67,6 +71,16 @@ def _ensure_user_contact_column() -> None:
 
     with engine.begin() as connection:
         connection.execute(text("ALTER TABLE users ADD COLUMN contact VARCHAR(100)"))
+
+
+def _ensure_user_email_column() -> None:
+    inspector = inspect(engine)
+    user_columns = {column["name"] for column in inspector.get_columns("users")}
+    if "email" in user_columns:
+        return
+
+    with engine.begin() as connection:
+        connection.execute(text("ALTER TABLE users ADD COLUMN email VARCHAR(255)"))
 
 
 def _ensure_user_introduction_column() -> None:

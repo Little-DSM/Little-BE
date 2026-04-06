@@ -27,3 +27,9 @@ class MentoringMatch(Base):
         foreign_keys=[selected_by_id],
         back_populates="selected_matches",
     )
+    review = relationship(
+        "MentoringReview",
+        back_populates="match",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
