@@ -36,6 +36,7 @@ def test_create_and_get_post() -> None:
             "/posts",
             json={
                 "title": "백엔드 코드 리뷰가 필요합니다",
+                "image_url": "https://example.com/images/backend-review.png",
                 "description": "SQLAlchemy 구조 피드백을 받고 싶어요.",
                 "major": "컴퓨터공학",
             },
@@ -49,6 +50,7 @@ def test_create_and_get_post() -> None:
 
     assert detail_response.status_code == 200
     assert detail_response.json()["title"] == "백엔드 코드 리뷰가 필요합니다"
+    assert detail_response.json()["image_url"] == "https://example.com/images/backend-review.png"
     assert detail_response.json()["author"]["id"] == 1
 
 
