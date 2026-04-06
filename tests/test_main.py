@@ -49,7 +49,7 @@ def test_create_and_get_post() -> None:
 
     assert detail_response.status_code == 200
     assert detail_response.json()["title"] == "백엔드 코드 리뷰가 필요합니다"
-    assert detail_response.json()["author"]["name"] == "김멘티"
+    assert detail_response.json()["author"]["id"] == 1
 
 
 def test_create_post_requires_title() -> None:
@@ -191,7 +191,10 @@ def test_get_mentor_detail() -> None:
 
     assert response.status_code == 200
     assert response.json()["id"] == 2
+    assert "email" in response.json()
     assert "application_count" in response.json()
+    assert "rating_average" in response.json()
+    assert "rating_count" in response.json()
     assert "contact" in response.json()
 
 
@@ -238,10 +241,13 @@ def test_my_page_get_and_update() -> None:
 
         get_response = client.get("/me", headers=headers)
         assert get_response.status_code == 200
-        assert get_response.json()["name"] == "김멘티"
+        assert get_response.json()["id"] == 1
+        assert "email" in get_response.json()
         assert "introduction" in get_response.json()
         assert "profile_image" in get_response.json()
         assert "major" in get_response.json()
+        assert "rating_average" in get_response.json()
+        assert "rating_count" in get_response.json()
 
         update_response = client.patch(
             "/me",
@@ -259,3 +265,47 @@ def test_my_page_get_and_update() -> None:
         assert body["introduction"] == "자기소개를 업데이트했습니다."
         assert body["profile_image"] == "https://example.com/images/updated-profile.png"
         assert body["major"] == "소프트웨어공학"
+
+
+def test_rating_is_reflected_on_mentor_profile() -> None:
+    with TestClient(app) as client:
+        mentee_pair = get_token_pair(client, user_id=1)
+        mentor_pair = get_token_pair(client, user_id=2)
+
+        mentee_headers = {"Authorization": f"Bearer {mentee_pair['access_token']}"}
+        mentor_headers = {"Authorization": f"Bearer {mentor_pair['access_token']}"}
+
+        create_post_response = client.post(
+            "/posts",
+            json={
+                "title": "운영체제 멘토링 받고 싶어요",
+                "description": "스케줄링과 동기화 개념을 배우고 싶습니다.",
+                "major": "컴퓨터공학",
+            },
+            headers=mentee_headers,
+        )
+        assert create_post_response.status_code == 201
+        post_id = create_post_response.json()["id"]
+
+        apply_response = client.post(f"/posts/{post_id}/apply", headers=mentor_headers)
+        assert apply_response.status_code == 201
+
+        select_response = client.post(
+            f"/posts/{post_id}/select-mentor",
+            json={"mentor_id": 2},
+            headers=mentee_headers,
+        )
+        assert select_response.status_code == 200
+
+        review_response = client.post(
+            f"/posts/{post_id}/review",
+            json={"rating": 5, "comment": "설명이 명확하고 친절했어요."},
+            headers=mentee_headers,
+        )
+        assert review_response.status_code == 200
+        assert review_response.json()["rating"] == 5
+
+        mentor_detail_response = client.get("/mentors/2", headers=mentee_headers)
+        assert mentor_detail_response.status_code == 200
+        assert mentor_detail_response.json()["rating_average"] is not None
+        assert mentor_detail_response.json()["rating_count"] >= 1
