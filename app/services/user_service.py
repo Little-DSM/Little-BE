@@ -4,7 +4,13 @@ from sqlalchemy.orm import Session
 
 from app.models import MentoringApplication, MentoringMatch, MentoringPost, MentoringReview, User
 from app.schemas.review import MentorReviewItem, MentorReviewSummaryResponse, RatingDistribution
-from app.schemas.user import MentorDetailResponse, MyPageResponse, MyPageUpdateRequest
+from app.schemas.user import (
+    MentorDetailResponse,
+    MentoringProgressItem,
+    MentoringProgressListResponse,
+    MyPageResponse,
+    MyPageUpdateRequest,
+)
 
 
 class UserService:
@@ -59,6 +65,46 @@ class UserService:
         self.db.commit()
         self.db.refresh(user)
         return self.get_my_profile(user)
+
+    def get_my_mentoring_progress(
+        self,
+        user: User,
+        status_filter: str = "all",
+    ) -> MentoringProgressListResponse:
+        stmt = (
+            select(MentoringMatch, MentoringPost, User, MentoringReview)
+            .join(MentoringPost, MentoringPost.id == MentoringMatch.post_id)
+            .join(User, User.id == MentoringMatch.mentor_id)
+            .outerjoin(MentoringReview, MentoringReview.match_id == MentoringMatch.id)
+            .where(MentoringPost.author_id == user.id)
+            .order_by(MentoringMatch.selected_at.desc())
+        )
+        rows = self.db.execute(stmt).all()
+        items: list[MentoringProgressItem] = []
+
+        for match, post, mentor, review in rows:
+            is_completed = review is not None
+            status = "COMPLETED" if is_completed else "IN_PROGRESS"
+            if status_filter == "completed" and not is_completed:
+                continue
+            if status_filter == "in_progress" and is_completed:
+                continue
+
+            items.append(
+                MentoringProgressItem(
+                    post_id=post.id,
+                    title=post.title,
+                    major=post.major,
+                    mentor_id=mentor.id,
+                    mentor_name=mentor.name,
+                    mentor_contact=mentor.contact or "연락처 미등록",
+                    status=status,
+                    selected_at=match.selected_at,
+                    completed_at=review.created_at if review else None,
+                )
+            )
+
+        return MentoringProgressListResponse(items=items)
 
     def _get_rating_stats(self, mentor_id: int) -> tuple[float | None, int]:
         stmt = select(
