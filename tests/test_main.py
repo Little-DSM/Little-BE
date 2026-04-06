@@ -361,3 +361,104 @@ def test_get_mentor_reviews_summary() -> None:
         assert isinstance(body["reviews"], list)
         assert body["reviews"][0]["post_title"]
         assert body["reviews"][0]["reviewer_nickname"].startswith("익명의 ")
+
+
+def test_get_my_mentoring_progress_with_status_and_contact() -> None:
+    with TestClient(app) as client:
+        mentee_pair = get_token_pair(client, user_id=1)
+        mentor_pair = get_token_pair(client, user_id=2)
+        mentee_headers = {"Authorization": f"Bearer {mentee_pair['access_token']}"}
+        mentor_headers = {"Authorization": f"Bearer {mentor_pair['access_token']}"}
+
+        in_progress_post = client.post(
+            "/posts",
+            json={
+                "title": "진행중 멘토링",
+                "description": "리뷰 전 상태를 확인하려고 합니다.",
+                "major": "Frontend",
+            },
+            headers=mentee_headers,
+        )
+        assert in_progress_post.status_code == 201
+        in_progress_post_id = in_progress_post.json()["id"]
+
+        assert (
+            client.post(
+                f"/posts/{in_progress_post_id}/apply",
+                headers=mentor_headers,
+            ).status_code
+            == 201
+        )
+        assert (
+            client.post(
+                f"/posts/{in_progress_post_id}/select-mentor",
+                json={"mentor_id": 2},
+                headers=mentee_headers,
+            ).status_code
+            == 200
+        )
+
+        completed_post = client.post(
+            "/posts",
+            json={
+                "title": "완료 멘토링",
+                "description": "리뷰 완료 상태를 확인하려고 합니다.",
+                "major": "Backend",
+            },
+            headers=mentee_headers,
+        )
+        assert completed_post.status_code == 201
+        completed_post_id = completed_post.json()["id"]
+
+        assert (
+            client.post(
+                f"/posts/{completed_post_id}/apply",
+                headers=mentor_headers,
+            ).status_code
+            == 201
+        )
+        assert (
+            client.post(
+                f"/posts/{completed_post_id}/select-mentor",
+                json={"mentor_id": 2},
+                headers=mentee_headers,
+            ).status_code
+            == 200
+        )
+        assert (
+            client.post(
+                f"/posts/{completed_post_id}/review",
+                json={"rating": 5, "comment": "도움이 많이 됐어요."},
+                headers=mentee_headers,
+            ).status_code
+            == 200
+        )
+
+        all_response = client.get("/me/mentoring-progress", headers=mentee_headers)
+        assert all_response.status_code == 200
+        all_items = all_response.json()["items"]
+        assert any(item["title"] == "진행중 멘토링" for item in all_items)
+        assert any(item["title"] == "완료 멘토링" for item in all_items)
+        for item in all_items:
+            if item["title"] in {"진행중 멘토링", "완료 멘토링"}:
+                assert item["mentor_contact"]
+
+        in_progress_response = client.get(
+            "/me/mentoring-progress",
+            params={"status": "in_progress"},
+            headers=mentee_headers,
+        )
+        assert in_progress_response.status_code == 200
+        in_progress_items = in_progress_response.json()["items"]
+        assert any(item["title"] == "진행중 멘토링" for item in in_progress_items)
+        assert all(item["status"] == "IN_PROGRESS" for item in in_progress_items)
+
+        completed_response = client.get(
+            "/me/mentoring-progress",
+            params={"status": "completed"},
+            headers=mentee_headers,
+        )
+        assert completed_response.status_code == 200
+        completed_items = completed_response.json()["items"]
+        assert any(item["title"] == "완료 멘토링" for item in completed_items)
+        assert all(item["status"] == "COMPLETED" for item in completed_items)
