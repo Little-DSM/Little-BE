@@ -115,3 +115,4 @@ ruff check .
 ### 참고
 
 - `.env` 파일은 `.gitignore`에 포함되어 있어 Git에 올라가지 않습니다.
+- Deployment heartbeat update: 2026-04-13
