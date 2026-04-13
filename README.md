@@ -28,6 +28,10 @@ GOOGLE_FRONTEND_REDIRECT_URI=http://127.0.0.1:3000/oauth/callback
 JWT_SECRET_KEY=your-jwt-secret-key
 ACCESS_TOKEN_EXPIRE=120
 REFRESH_TOKEN_EXPIRE=7
+
+# 선택: 외부 DB/캐시 사용 시
+DATABASE_URL=sqlite:///./mentoring.db
+REDIS_URL=redis://127.0.0.1:6379/0
 ```
 
 - `ACCESS_TOKEN_EXPIRE`: 분(minute) 단위

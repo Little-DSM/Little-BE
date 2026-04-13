@@ -1,8 +1,11 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from sqlalchemy import text
 
 from app.database.init_db import init_db
+from app.database.session import SessionLocal
+from app.redis_client import close_redis, get_redis_client, init_redis
 from app.routers.auth import router as auth_router
 from app.routers.me import router as me_router
 from app.routers.mentors import router as mentors_router
@@ -12,7 +15,11 @@ from app.routers.posts import router as posts_router
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     init_db()
-    yield
+    init_redis()
+    try:
+        yield
+    finally:
+        close_redis()
 
 
 app = FastAPI(
@@ -62,4 +69,22 @@ async def read_root() -> dict[str, str]:
     description="API 서버의 기본 상태를 확인합니다.",
 )
 async def health_check() -> dict[str, str]:
-    return {"status": "ok"}
+    database = "ok"
+    redis = "not_configured"
+
+    try:
+        with SessionLocal() as db:
+            db.execute(text("SELECT 1"))
+    except Exception:
+        database = "error"
+
+    redis_client = get_redis_client()
+    if redis_client is not None:
+        try:
+            redis_client.ping()
+            redis = "ok"
+        except Exception:
+            redis = "error"
+
+    status = "ok" if database == "ok" and redis != "error" else "degraded"
+    return {"status": status, "database": database, "redis": redis}
