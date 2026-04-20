@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.database.init_db import init_db
@@ -44,6 +45,14 @@ app = FastAPI(
         {"name": "mentors", "description": "멘토 상세 정보 조회 API"},
         {"name": "health", "description": "서버 상태 확인 API"},
     ],
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(auth_router)
