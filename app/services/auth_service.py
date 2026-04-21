@@ -25,9 +25,13 @@ class AuthService:
         self.db = db
         self.settings = get_google_oauth_settings()
 
-    def get_google_authorization_url(self) -> tuple[str, str]:
+    def get_google_authorization_url(
+        self,
+        frontend_redirect_uri: str | None = None,
+    ) -> tuple[str, str]:
         self._validate_google_settings()
-        state = create_oauth_state_token()
+        resolved_frontend_redirect_uri = self._resolve_frontend_redirect_uri(frontend_redirect_uri)
+        state = create_oauth_state_token(resolved_frontend_redirect_uri)
         params = {
             "client_id": self.settings.client_id,
             "redirect_uri": self.settings.redirect_uri,
@@ -41,8 +45,24 @@ class AuthService:
         return url, state
 
     def login_with_google_code(self, code: str, state: str) -> dict[str, str]:
+        _, tokens = self._login_with_google_code_internal(code, state)
+        return tokens
+
+    def login_with_google_code_for_frontend_redirect(
+        self,
+        code: str,
+        state: str,
+    ) -> tuple[dict[str, str], str]:
+        frontend_redirect_uri, tokens = self._login_with_google_code_internal(code, state)
+        return tokens, frontend_redirect_uri
+
+    def _login_with_google_code_internal(
+        self,
+        code: str,
+        state: str,
+    ) -> tuple[str, dict[str, str]]:
         self._validate_google_settings()
-        self._validate_state(state)
+        frontend_redirect_uri = self._validate_state(state)
         token_payload = self._exchange_code_for_tokens(code)
         id_token_value = token_payload.get("id_token")
         if not id_token_value:
@@ -50,7 +70,8 @@ class AuthService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Google 토큰 응답에 id_token 이 없습니다",
             )
-        return self.login_with_google_id_token(id_token_value)
+        tokens = self.login_with_google_id_token(id_token_value)
+        return frontend_redirect_uri, tokens
 
     def login_with_google_id_token(self, id_token_value: str) -> dict[str, str]:
         self._validate_google_settings()
@@ -99,14 +120,27 @@ class AuthService:
                 detail="Google OAuth 설정이 누락되었습니다",
             )
 
-    def _validate_state(self, state: str) -> None:
+    def _validate_state(self, state: str) -> str:
         try:
-            verify_oauth_state_token(state)
+            frontend_redirect_uri = verify_oauth_state_token(state)
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="유효하지 않은 OAuth state 입니다",
             ) from None
+        return self._resolve_frontend_redirect_uri(frontend_redirect_uri)
+
+    def _resolve_frontend_redirect_uri(self, frontend_redirect_uri: str | None) -> str:
+        candidate = (frontend_redirect_uri or self.settings.frontend_redirect_uri).strip()
+        if not candidate:
+            candidate = self.settings.frontend_redirect_uri
+
+        if candidate not in self.settings.allowed_frontend_redirect_uris:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="허용되지 않은 프론트엔드 리다이렉트 URI 입니다",
+            )
+        return candidate
 
     def _exchange_code_for_tokens(self, code: str) -> dict[str, str]:
         payload = {

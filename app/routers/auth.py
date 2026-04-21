@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from urllib.parse import urlencode
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
@@ -49,16 +52,62 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> AuthTokenPair
     "/google/login",
     response_model=GoogleAuthUrlResponse,
     summary="Google OAuth 로그인 URL 발급",
-    description="프론트엔드가 사용자를 구글 로그인 화면으로 보낼 URL과 state를 발급합니다.",
+    description=(
+        "프론트엔드가 사용자를 구글 로그인 화면으로 보낼 URL과 state를 발급합니다. "
+        "`frontend_redirect_uri`를 주면 로그인 완료 후 해당 프론트엔드 URL로 이동합니다."
+    ),
     responses={
         200: {"description": "OAuth 인증 URL 발급 성공"},
+        400: {"model": ErrorResponse, "description": "허용되지 않은 프론트엔드 리다이렉트 URI"},
         500: {"model": ErrorResponse, "description": "Google OAuth 설정 누락"},
     },
 )
-def google_login_url(db: Session = Depends(get_db)) -> GoogleAuthUrlResponse:
+def google_login_url(
+    frontend_redirect_uri: str | None = Query(
+        default=None,
+        description=(
+            "로그인 완료 후 이동할 프론트엔드 URL. "
+            "허용 목록(예: Vercel main, localhost:5173 main)만 사용 가능"
+        ),
+    ),
+    db: Session = Depends(get_db),
+) -> GoogleAuthUrlResponse:
     auth_service = AuthService(db)
-    authorization_url, state = auth_service.get_google_authorization_url()
+    authorization_url, state = auth_service.get_google_authorization_url(frontend_redirect_uri)
     return GoogleAuthUrlResponse(authorization_url=authorization_url, state=state)
+
+
+@router.get(
+    "/google/callback",
+    summary="Google OAuth callback 리다이렉트",
+    description=(
+        "Google callback의 code/state를 처리해 서비스 JWT 토큰을 발급한 뒤 "
+        "프론트엔드 /main 페이지로 리다이렉트합니다."
+    ),
+    responses={
+        302: {"description": "프론트엔드 페이지로 리다이렉트"},
+        400: {"model": ErrorResponse, "description": "유효하지 않은 code/state"},
+        401: {"model": ErrorResponse, "description": "유효하지 않은 Google ID Token"},
+        500: {"model": ErrorResponse, "description": "Google OAuth 설정 누락"},
+    },
+)
+def google_callback_redirect(
+    code: str = Query(..., description="Google callback에서 받은 authorization code"),
+    state: str = Query(..., description="Google callback에서 받은 state"),
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    tokens, frontend_redirect_uri = AuthService(db).login_with_google_code_for_frontend_redirect(
+        code,
+        state,
+    )
+    redirect_query = urlencode(
+        {
+            "access_token": tokens["access_token"],
+            "refresh_token": tokens["refresh_token"],
+            "token_type": "bearer",
+        }
+    )
+    return RedirectResponse(url=f"{frontend_redirect_uri}?{redirect_query}", status_code=302)
 
 
 @router.post(

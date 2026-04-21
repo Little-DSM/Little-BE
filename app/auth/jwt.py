@@ -57,17 +57,19 @@ def decode_refresh_token(token: str) -> dict[str, str | int]:
     return {"sub": str(subject), "jti": str(token_id), "exp": exp}
 
 
-def create_oauth_state_token() -> str:
+def create_oauth_state_token(frontend_redirect_uri: str | None = None) -> str:
     expire = datetime.now(timezone.utc) + timedelta(minutes=OAUTH_STATE_EXPIRE_MINUTES)
     payload = {
         "sub": "google_oauth_state",
         "type": "oauth_state",
         "exp": expire,
     }
+    if frontend_redirect_uri:
+        payload["frontend_redirect_uri"] = frontend_redirect_uri
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def verify_oauth_state_token(token: str) -> None:
+def verify_oauth_state_token(token: str) -> str | None:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError as exc:
@@ -75,3 +77,8 @@ def verify_oauth_state_token(token: str) -> None:
 
     if payload.get("type") != "oauth_state":
         raise ValueError("유효하지 않은 OAuth state 입니다")
+
+    frontend_redirect_uri = payload.get("frontend_redirect_uri")
+    if frontend_redirect_uri is not None and not isinstance(frontend_redirect_uri, str):
+        raise ValueError("유효하지 않은 OAuth state 입니다")
+    return frontend_redirect_uri

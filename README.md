@@ -23,7 +23,8 @@ pip install -e ".[dev]"
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_REDIRECT_URI=http://127.0.0.1:8001/auth/google/callback
-GOOGLE_FRONTEND_REDIRECT_URI=http://127.0.0.1:3000/oauth/callback
+GOOGLE_FRONTEND_REDIRECT_URI=http://localhost:5173/main
+GOOGLE_ALLOWED_FRONTEND_REDIRECT_URIS=https://little-fe.vercel.app/main,http://localhost:5173/main
 
 JWT_SECRET_KEY=your-jwt-secret-key
 ACCESS_TOKEN_EXPIRE=120
@@ -36,6 +37,7 @@ REDIS_URL=redis://127.0.0.1:6379/0
 
 - `ACCESS_TOKEN_EXPIRE`: 분(minute) 단위
 - `REFRESH_TOKEN_EXPIRE`: 일(day) 단위
+- `GOOGLE_ALLOWED_FRONTEND_REDIRECT_URIS`: Google 로그인 완료 후 리다이렉트 가능한 프론트 URL 화이트리스트(콤마 구분)
 
 ## 4. 서버 실행
 
@@ -54,6 +56,8 @@ uvicorn app.main:app --reload --port 8001 --env-file .env
 실서비스 기준으로는 Google 로그인 사용:
 
 - `POST /auth/google/token`
+- `GET /auth/google/login` → Google 인증 URL 발급
+- `GET /auth/google/callback` → 토큰 발급 후 프론트 `/main`으로 리다이렉트 (`access_token`, `refresh_token` 쿼리 포함)
 
 응답으로 아래 토큰 쌍을 받습니다.
 

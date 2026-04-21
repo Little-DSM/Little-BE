@@ -2,6 +2,25 @@
 
 ## Auth
 
+### GET `/auth/google/login`
+- Query (optional)
+  - `frontend_redirect_uri`: 로그인 완료 후 이동할 프론트 URL
+- Response
+```json
+{
+  "authorization_url": "https://accounts.google.com/o/oauth2/v2/auth?...",
+  "state": "jwt-oauth-state"
+}
+```
+
+### GET `/auth/google/callback`
+- Query
+  - `code`
+  - `state`
+- Response
+  - `302 Redirect` to frontend `/main`
+  - query: `access_token`, `refresh_token`, `token_type`
+
 ### POST `/auth/google/token`
 - Request
 ```json

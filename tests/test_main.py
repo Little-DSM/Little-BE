@@ -1,5 +1,8 @@
+from urllib.parse import parse_qs, urlparse
+
 from fastapi.testclient import TestClient
 
+from app.auth.jwt import verify_oauth_state_token
 from app.main import app
 
 
@@ -106,6 +109,43 @@ def test_google_login_url_requires_settings(monkeypatch) -> None:
     assert response.json() == {"detail": "Google OAuth 설정이 누락되었습니다"}
 
 
+def test_google_login_url_supports_frontend_redirect(monkeypatch) -> None:
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "dummy-client-id")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "dummy-client-secret")
+    monkeypatch.setenv(
+        "GOOGLE_ALLOWED_FRONTEND_REDIRECT_URIS",
+        "https://little-fe.vercel.app/main,http://localhost:5173/main",
+    )
+
+    with TestClient(app) as client:
+        response = client.get(
+            "/auth/google/login",
+            params={"frontend_redirect_uri": "http://localhost:5173/main"},
+        )
+
+    assert response.status_code == 200
+    state = response.json()["state"]
+    assert verify_oauth_state_token(state) == "http://localhost:5173/main"
+
+
+def test_google_login_url_rejects_not_allowed_frontend_redirect(monkeypatch) -> None:
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "dummy-client-id")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "dummy-client-secret")
+    monkeypatch.setenv(
+        "GOOGLE_ALLOWED_FRONTEND_REDIRECT_URIS",
+        "https://little-fe.vercel.app/main,http://localhost:5173/main",
+    )
+
+    with TestClient(app) as client:
+        response = client.get(
+            "/auth/google/login",
+            params={"frontend_redirect_uri": "https://evil.example.com/main"},
+        )
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "허용되지 않은 프론트엔드 리다이렉트 URI 입니다"}
+
+
 def test_google_id_token_login_success(monkeypatch) -> None:
     monkeypatch.setenv("GOOGLE_CLIENT_ID", "dummy-client-id")
     monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "dummy-client-secret")
@@ -131,6 +171,43 @@ def test_google_id_token_login_success(monkeypatch) -> None:
     assert response.json()["token_type"] == "bearer"
     assert response.json()["access_token"]
     assert response.json()["refresh_token"]
+
+
+def test_google_callback_get_redirects_to_frontend(monkeypatch) -> None:
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "dummy-client-id")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "dummy-client-secret")
+
+    def fake_login(self, code: str, state: str):
+        assert code == "dummy-code"
+        assert state == "dummy-state"
+        return (
+            {
+                "access_token": "access-token-value",
+                "refresh_token": "refresh-token-value",
+            },
+            "https://little-fe.vercel.app/main",
+        )
+
+    monkeypatch.setattr(
+        "app.services.auth_service.AuthService.login_with_google_code_for_frontend_redirect",
+        fake_login,
+    )
+
+    with TestClient(app) as client:
+        response = client.get(
+            "/auth/google/callback",
+            params={"code": "dummy-code", "state": "dummy-state"},
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 302
+    location = response.headers["location"]
+    parsed = urlparse(location)
+    query = parse_qs(parsed.query)
+    assert f"{parsed.scheme}://{parsed.netloc}{parsed.path}" == "https://little-fe.vercel.app/main"
+    assert query["access_token"] == ["access-token-value"]
+    assert query["refresh_token"] == ["refresh-token-value"]
+    assert query["token_type"] == ["bearer"]
 
 
 def test_refresh_and_logout_flow() -> None:
