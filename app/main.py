@@ -50,12 +50,14 @@ app = FastAPI(
 allowed_origins = [
     "http://localhost:5173",
     "https://little-fe.vercel.app",
+    "https://little-fe.vercel.app/",
     "https://little-orpin.vercel.app",
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=r"^https://little-fe(-[a-z0-9-]+)?\.vercel\.app/?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
