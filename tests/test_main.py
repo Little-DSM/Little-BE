@@ -539,3 +539,58 @@ def test_get_my_mentoring_progress_with_status_and_contact() -> None:
         completed_items = completed_response.json()["items"]
         assert any(item["title"] == "완료 멘토링" for item in completed_items)
         assert all(item["status"] == "COMPLETED" for item in completed_items)
+
+
+def test_get_my_posts_only_returns_current_user_posts() -> None:
+    with TestClient(app) as client:
+        my_token = get_token(client, user_id=1)
+        my_headers = {"Authorization": f"Bearer {my_token}"}
+        other_token = get_token(client, user_id=2)
+        other_headers = {"Authorization": f"Bearer {other_token}"}
+
+        my_create_1 = client.post(
+            "/posts",
+            json={
+                "title": "내 게시글 A",
+                "image_url": "https://example.com/images/my-a.png",
+                "description": "내가 작성한 첫 번째 글",
+                "major": "Frontend",
+            },
+            headers=my_headers,
+        )
+        assert my_create_1.status_code == 201
+
+        my_create_2 = client.post(
+            "/posts",
+            json={
+                "title": "내 게시글 B",
+                "image_url": "https://example.com/images/my-b.png",
+                "description": "내가 작성한 두 번째 글",
+                "major": "Backend",
+            },
+            headers=my_headers,
+        )
+        assert my_create_2.status_code == 201
+
+        other_create = client.post(
+            "/posts",
+            json={
+                "title": "다른 사람 글",
+                "description": "내 글 목록에 보이면 안됨",
+                "major": "AI",
+            },
+            headers=other_headers,
+        )
+        assert other_create.status_code == 201
+
+        response = client.get("/me/posts", headers=my_headers)
+        assert response.status_code == 200
+        body = response.json()
+        assert "total_count" in body
+        assert body["total_count"] >= 2
+        assert isinstance(body["items"], list)
+        titles = [item["title"] for item in body["items"]]
+        assert "내 게시글 A" in titles
+        assert "내 게시글 B" in titles
+        assert "다른 사람 글" not in titles
+        assert all(item["author_name"] for item in body["items"])
