@@ -97,18 +97,22 @@ def _ensure_user_introduction_column() -> None:
 
 def _ensure_post_image_column() -> None:
     inspector = inspect(engine)
-    post_columns = {column["name"] for column in inspector.get_columns("mentoring_posts")}
+    columns = inspector.get_columns("mentoring_posts")
+    post_columns = {column["name"] for column in columns}
     if "image_url" not in post_columns:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE mentoring_posts ADD COLUMN image_url TEXT"))
         return
 
     image_url_column = next(
-        (column for column in inspector.get_columns("mentoring_posts") if column["name"] == "image_url"),
+        (column for column in columns if column["name"] == "image_url"),
         None,
     )
     column_type = str(image_url_column["type"]).lower() if image_url_column else ""
     if "text" in column_type:
+        return
+
+    if engine.dialect.name != "mysql":
         return
 
     with engine.begin() as connection:
