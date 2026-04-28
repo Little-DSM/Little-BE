@@ -128,6 +128,10 @@ class MentoringProgressItem(BaseModel):
                 "mentor_id": 2,
                 "mentor_name": "박멘토",
                 "mentor_contact": "010-3000-2000",
+                "my_role": "MENTEE",
+                "counterpart_id": 2,
+                "counterpart_name": "박멘토",
+                "counterpart_contact": "010-3000-2000",
                 "status": "IN_PROGRESS",
                 "selected_at": "2026-04-06T11:00:00",
                 "completed_at": None,
@@ -141,6 +145,10 @@ class MentoringProgressItem(BaseModel):
     mentor_id: int = Field(..., description="확정된 멘토 ID")
     mentor_name: str = Field(..., description="확정된 멘토 이름")
     mentor_contact: str = Field(..., description="확정된 멘토 연락처(미등록 시 기본 문구)")
+    my_role: Literal["MENTEE", "MENTOR"] = Field(..., description="내 역할")
+    counterpart_id: int = Field(..., description="상대방 사용자 ID")
+    counterpart_name: str = Field(..., description="상대방 이름")
+    counterpart_contact: str = Field(..., description="상대방 연락처")
     status: Literal["IN_PROGRESS", "COMPLETED"] = Field(..., description="멘토링 진행 상태")
     selected_at: datetime = Field(..., description="멘토 확정 시각")
     completed_at: datetime | None = Field(

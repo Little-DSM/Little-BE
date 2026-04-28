@@ -548,6 +548,8 @@ def test_get_my_mentoring_progress_with_status_and_contact() -> None:
         for item in all_items:
             if item["title"] in {"진행중 멘토링", "완료 멘토링"}:
                 assert item["mentor_contact"]
+                assert item["my_role"] == "MENTEE"
+                assert item["counterpart_name"]
 
         in_progress_response = client.get(
             "/me/mentoring-progress",
@@ -568,6 +570,48 @@ def test_get_my_mentoring_progress_with_status_and_contact() -> None:
         completed_items = completed_response.json()["items"]
         assert any(item["title"] == "완료 멘토링" for item in completed_items)
         assert all(item["status"] == "COMPLETED" for item in completed_items)
+
+
+def test_mentor_can_check_progress_when_role_filter_is_mentor() -> None:
+    with TestClient(app) as client:
+        mentee_pair = get_token_pair(client, user_id=1)
+        mentor_pair = get_token_pair(client, user_id=2)
+        mentee_headers = {"Authorization": f"Bearer {mentee_pair['access_token']}"}
+        mentor_headers = {"Authorization": f"Bearer {mentor_pair['access_token']}"}
+
+        create_post_response = client.post(
+            "/posts",
+            json={
+                "title": "역할 필터 테스트",
+                "description": "멘토/멘티 진행상황 조회 역할 테스트",
+                "major": "Backend",
+            },
+            headers=mentee_headers,
+        )
+        assert create_post_response.status_code == 201
+        post_id = create_post_response.json()["id"]
+
+        assert client.post(f"/posts/{post_id}/apply", headers=mentor_headers).status_code == 201
+        assert (
+            client.post(
+                f"/posts/{post_id}/select-mentor",
+                json={"mentor_id": 2},
+                headers=mentee_headers,
+            ).status_code
+            == 200
+        )
+
+        mentor_progress_response = client.get(
+            "/me/mentoring-progress",
+            params={"role": "mentor"},
+            headers=mentor_headers,
+        )
+        assert mentor_progress_response.status_code == 200
+        items = mentor_progress_response.json()["items"]
+        target_items = [item for item in items if item["post_id"] == post_id]
+        assert len(target_items) == 1
+        assert target_items[0]["my_role"] == "MENTOR"
+        assert target_items[0]["counterpart_name"]
 
 
 def test_get_my_posts_only_returns_current_user_posts() -> None:

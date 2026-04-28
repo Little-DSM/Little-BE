@@ -72,10 +72,14 @@ def get_my_mentoring_progress(
         default="all",
         description="상태 필터(all/in_progress/completed)",
     ),
+    role: Literal["all", "mentee", "mentor"] = Query(
+        default="all",
+        description="역할 필터(all/mentee/mentor)",
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> MentoringProgressListResponse:
-    return UserService(db).get_my_mentoring_progress(current_user, status)
+    return UserService(db).get_my_mentoring_progress(current_user, status, role)
 
 
 @router.get(

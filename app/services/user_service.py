@@ -1,6 +1,6 @@
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy import func, or_, select
+from sqlalchemy.orm import Session, aliased
 
 from app.models import MentoringApplication, MentoringMatch, MentoringPost, MentoringReview, User
 from app.schemas.review import MentorReviewItem, MentorReviewSummaryResponse, RatingDistribution
@@ -72,25 +72,42 @@ class UserService:
         self,
         user: User,
         status_filter: str = "all",
+        role_filter: str = "all",
     ) -> MentoringProgressListResponse:
+        mentor_user = aliased(User)
+        author_user = aliased(User)
+
         stmt = (
-            select(MentoringMatch, MentoringPost, User, MentoringReview)
+            select(MentoringMatch, MentoringPost, mentor_user, author_user, MentoringReview)
             .join(MentoringPost, MentoringPost.id == MentoringMatch.post_id)
-            .join(User, User.id == MentoringMatch.mentor_id)
+            .join(mentor_user, mentor_user.id == MentoringMatch.mentor_id)
+            .join(author_user, author_user.id == MentoringPost.author_id)
             .outerjoin(MentoringReview, MentoringReview.match_id == MentoringMatch.id)
-            .where(MentoringPost.author_id == user.id)
+            .where(
+                or_(
+                    MentoringPost.author_id == user.id,
+                    MentoringMatch.mentor_id == user.id,
+                )
+            )
             .order_by(MentoringMatch.selected_at.desc())
         )
+        if role_filter == "mentee":
+            stmt = stmt.where(MentoringPost.author_id == user.id)
+        if role_filter == "mentor":
+            stmt = stmt.where(MentoringMatch.mentor_id == user.id)
+
         rows = self.db.execute(stmt).all()
         items: list[MentoringProgressItem] = []
 
-        for match, post, mentor, review in rows:
+        for match, post, mentor, author, review in rows:
             is_completed = review is not None
             status = "COMPLETED" if is_completed else "IN_PROGRESS"
             if status_filter == "completed" and not is_completed:
                 continue
             if status_filter == "in_progress" and is_completed:
                 continue
+            is_mentee = post.author_id == user.id
+            counterpart = mentor if is_mentee else author
 
             items.append(
                 MentoringProgressItem(
@@ -100,6 +117,10 @@ class UserService:
                     mentor_id=mentor.id,
                     mentor_name=mentor.name,
                     mentor_contact=mentor.contact or "연락처 미등록",
+                    my_role="MENTEE" if is_mentee else "MENTOR",
+                    counterpart_id=counterpart.id,
+                    counterpart_name=counterpart.name,
+                    counterpart_contact=counterpart.contact or "연락처 미등록",
                     status=status,
                     selected_at=match.selected_at,
                     completed_at=review.created_at if review else None,
