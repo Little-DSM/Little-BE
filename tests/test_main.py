@@ -57,6 +57,27 @@ def test_create_and_get_post() -> None:
     assert detail_response.json()["author"]["id"] == 1
 
 
+def test_create_post_with_long_image_url() -> None:
+    with TestClient(app) as client:
+        token = get_token(client, user_id=1)
+        headers = {"Authorization": f"Bearer {token}"}
+        long_image_url = "https://example.com/images/" + ("a" * 70000)
+
+        response = client.post(
+            "/posts",
+            json={
+                "title": "긴 이미지 URL 게시글",
+                "image_url": long_image_url,
+                "description": "긴 이미지 URL 저장 테스트",
+                "major": "컴퓨터공학",
+            },
+            headers=headers,
+        )
+
+    assert response.status_code == 201
+    assert response.json()["image_url"] == long_image_url
+
+
 def test_create_post_requires_title() -> None:
     with TestClient(app) as client:
         token = get_token(client, user_id=1)

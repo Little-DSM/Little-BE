@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import ForeignKey, String, Text, func
+from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.session import Base
@@ -11,7 +12,10 @@ class MentoringPost(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
-    image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    image_url: Mapped[str | None] = mapped_column(
+        Text().with_variant(mysql.LONGTEXT(), "mysql"),
+        nullable=True,
+    )
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     major: Mapped[str] = mapped_column(String(100), nullable=False)
     author_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)

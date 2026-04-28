@@ -1,5 +1,6 @@
 from fastapi import HTTPException, status
 from sqlalchemy import or_, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
 from app.models import MentoringApplication, MentoringMatch, MentoringPost, MentoringReview, User
@@ -19,7 +20,7 @@ class PostService:
             author_id=author.id,
         )
         self.db.add(post)
-        self.db.commit()
+        self._commit_or_raise_post_persist_error()
         self.db.refresh(post)
         return self.get_post(post.id)
 
@@ -63,7 +64,7 @@ class PostService:
         post.image_url = payload.image_url
         post.description = payload.description
         post.major = payload.major
-        self.db.commit()
+        self._commit_or_raise_post_persist_error()
         self.db.refresh(post)
         return self.get_post(post.id)
 
@@ -212,3 +213,13 @@ class PostService:
                 detail="게시글 작성자만 수정 또는 삭제할 수 있습니다",
             )
         return post
+
+    def _commit_or_raise_post_persist_error(self) -> None:
+        try:
+            self.db.commit()
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="게시글 저장에 실패했습니다. 입력값 길이를 확인해주세요",
+            ) from None

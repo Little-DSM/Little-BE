@@ -99,9 +99,16 @@ def _ensure_post_image_column() -> None:
     inspector = inspect(engine)
     columns = inspector.get_columns("mentoring_posts")
     post_columns = {column["name"] for column in columns}
+    dialect_name = engine.dialect.name
+
     if "image_url" not in post_columns:
         with engine.begin() as connection:
-            connection.execute(text("ALTER TABLE mentoring_posts ADD COLUMN image_url TEXT"))
+            if dialect_name == "mysql":
+                connection.execute(
+                    text("ALTER TABLE mentoring_posts ADD COLUMN image_url LONGTEXT")
+                )
+            else:
+                connection.execute(text("ALTER TABLE mentoring_posts ADD COLUMN image_url TEXT"))
         return
 
     image_url_column = next(
@@ -109,11 +116,11 @@ def _ensure_post_image_column() -> None:
         None,
     )
     column_type = str(image_url_column["type"]).lower() if image_url_column else ""
-    if "text" in column_type:
+    if dialect_name != "mysql":
         return
 
-    if engine.dialect.name != "mysql":
+    if "longtext" in column_type:
         return
 
     with engine.begin() as connection:
-        connection.execute(text("ALTER TABLE mentoring_posts MODIFY COLUMN image_url TEXT"))
+        connection.execute(text("ALTER TABLE mentoring_posts MODIFY COLUMN image_url LONGTEXT"))
