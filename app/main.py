@@ -1,10 +1,12 @@
+import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.database.init_db import init_db
 from app.database.session import SessionLocal
@@ -13,6 +15,8 @@ from app.routers.auth import router as auth_router
 from app.routers.me import router as me_router
 from app.routers.mentors import router as mentors_router
 from app.routers.posts import router as posts_router
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -112,6 +116,34 @@ async def request_validation_exception_handler(
     return JSONResponse(
         status_code=422,
         content={"detail": _format_validation_message(exc)},
+    )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(_: Request, exc: HTTPException) -> JSONResponse:
+    detail = exc.detail if isinstance(exc.detail, str) else "요청 처리 중 오류가 발생했습니다"
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": detail},
+        headers=exc.headers,
+    )
+
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(_: Request, exc: SQLAlchemyError) -> JSONResponse:
+    logger.exception("SQLAlchemy error captured", exc_info=exc)
+    return JSONResponse(
+        status_code=400,
+        content={"detail": "데이터 처리 중 오류가 발생했습니다"},
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(_: Request, exc: Exception) -> JSONResponse:
+    logger.exception("Unhandled exception captured", exc_info=exc)
+    return JSONResponse(
+        status_code=400,
+        content={"detail": "요청 처리 중 오류가 발생했습니다"},
     )
 
 allowed_origins = [

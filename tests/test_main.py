@@ -101,6 +101,21 @@ def test_validation_error_is_pre_handled_for_required_field() -> None:
     assert response.json() == {"detail": "사용자 ID 값을 입력해주세요"}
 
 
+def test_unhandled_exception_is_converted_to_400(monkeypatch) -> None:
+    def fake_list_posts(self, keyword=None, major=None):
+        raise RuntimeError("unexpected")
+
+    monkeypatch.setattr("app.services.post_service.PostService.list_posts", fake_list_posts)
+
+    with TestClient(app, raise_server_exceptions=False) as client:
+        token = get_token(client, user_id=1)
+        headers = {"Authorization": f"Bearer {token}"}
+        response = client.get("/posts", headers=headers)
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "요청 처리 중 오류가 발생했습니다"}
+
+
 def test_only_author_can_update_post() -> None:
     with TestClient(app) as client:
         token = get_token(client, user_id=2)
