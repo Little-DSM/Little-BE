@@ -107,3 +107,26 @@
 ### GET `/mentors/{mentor_id}`
 - Header: `Authorization: Bearer <access_token>`
 - 멘토 상세 + `application_count` 반환
+
+## My Page
+
+### GET `/me/posts`
+- Header: `Authorization: Bearer <access_token>`
+- 로그인한 사용자가 작성한 게시글 목록 조회
+- Response
+```json
+{
+  "total_count": 2,
+  "items": [
+    {
+      "post_id": 12,
+      "title": "리액트에 대해 알려주세요!",
+      "image_url": "https://example.com/images/react-post.png",
+      "major": "Frontend",
+      "author_name": "오찬영",
+      "created_at": "2026-04-28T11:00:00",
+      "view_count": 0
+    }
+  ]
+}
+```

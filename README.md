@@ -97,6 +97,7 @@ Authorization: Bearer <access_token>
 
 - 게시글 전체/검색: `GET /posts`, `GET /posts?keyword=&major=`
 - 멘토 상세(연락처 포함): `GET /mentors/{mentor_id}`
+- 마이페이지 내 게시글 목록: `GET /me/posts`
 
 ## 부가사항
 
