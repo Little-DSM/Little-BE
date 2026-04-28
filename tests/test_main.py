@@ -90,7 +90,15 @@ def test_create_post_requires_title() -> None:
         )
 
     assert response.status_code == 422
-    assert response.json()["detail"][0]["msg"] == "Value error, 제목을 입력해주세요"
+    assert response.json() == {"detail": "제목을 입력해주세요"}
+
+
+def test_validation_error_is_pre_handled_for_required_field() -> None:
+    with TestClient(app) as client:
+        response = client.post("/auth/login", json={})
+
+    assert response.status_code == 422
+    assert response.json() == {"detail": "사용자 ID 값을 입력해주세요"}
 
 
 def test_only_author_can_update_post() -> None:
