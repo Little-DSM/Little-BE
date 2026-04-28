@@ -10,6 +10,8 @@ from app.schemas.user import (
     MentoringProgressListResponse,
     MyPageResponse,
     MyPageUpdateRequest,
+    MyPostListItem,
+    MyPostListResponse,
 )
 
 
@@ -105,6 +107,28 @@ class UserService:
             )
 
         return MentoringProgressListResponse(items=items)
+
+    def get_my_posts(self, user: User) -> MyPostListResponse:
+        stmt = (
+            select(MentoringPost)
+            .where(MentoringPost.author_id == user.id)
+            .order_by(MentoringPost.created_at.desc())
+        )
+        posts = list(self.db.scalars(stmt).all())
+
+        items = [
+            MyPostListItem(
+                post_id=post.id,
+                title=post.title,
+                image_url=post.image_url,
+                major=post.major,
+                author_name=user.name,
+                created_at=post.created_at,
+                view_count=0,
+            )
+            for post in posts
+        ]
+        return MyPostListResponse(total_count=len(items), items=items)
 
     def _get_rating_stats(self, mentor_id: int) -> tuple[float | None, int]:
         stmt = select(

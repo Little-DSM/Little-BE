@@ -171,3 +171,51 @@ class MentoringProgressListResponse(BaseModel):
     )
 
     items: list[MentoringProgressItem] = Field(..., description="내 멘토링 진행 목록")
+
+
+class MyPostListItem(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "post_id": 12,
+                "title": "리액트에 대해 알려주세요!",
+                "image_url": "https://example.com/images/react-post.png",
+                "major": "Frontend",
+                "author_name": "오찬영",
+                "created_at": "2026-04-28T11:00:00",
+                "view_count": 0,
+            }
+        }
+    )
+
+    post_id: int = Field(..., description="게시글 ID")
+    title: str = Field(..., description="게시글 제목")
+    image_url: str | None = Field(default=None, description="게시글 이미지 URL")
+    major: str = Field(..., description="멘토링 전공")
+    author_name: str = Field(..., description="작성자 이름")
+    created_at: datetime = Field(..., description="게시글 작성 시각")
+    view_count: int = Field(default=0, description="조회수(현재 기본값 0)")
+
+
+class MyPostListResponse(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "total_count": 2,
+                "items": [
+                    {
+                        "post_id": 12,
+                        "title": "리액트에 대해 알려주세요!",
+                        "image_url": "https://example.com/images/react-post.png",
+                        "major": "Frontend",
+                        "author_name": "오찬영",
+                        "created_at": "2026-04-28T11:00:00",
+                        "view_count": 0,
+                    }
+                ],
+            }
+        }
+    )
+
+    total_count: int = Field(..., description="내 게시글 총 개수")
+    items: list[MyPostListItem] = Field(..., description="내 게시글 목록")
