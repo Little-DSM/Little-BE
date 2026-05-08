@@ -87,15 +87,16 @@ Authorization: Bearer <access_token>
 
 ### 5-5. 멘토링 핵심 기능 흐름
 
-1. 멘티가 게시글 생성: `POST /posts`
-2. 멘토가 게시글 지원: `POST /posts/{post_id}/apply`
-3. 멘티가 지원자 목록 확인: `GET /posts/{post_id}/applications`
-4. 멘티가 멘토 확정: `POST /posts/{post_id}/select-mentor`
-5. 멘티가 확정 결과 확인: `GET /posts/{post_id}/selected-mentor`
+1. 게시글 생성(필수: `role=MENTEE | MENTOR`): `POST /posts`
+2. 타 사용자가 게시글 지원: `POST /posts/{post_id}/apply`
+3. 작성자가 지원자 목록 확인: `GET /posts/{post_id}/applications`
+4. 작성자가 지원자 확정: `POST /posts/{post_id}/select-mentor`
+5. 확정 결과 확인: `GET /posts/{post_id}/selected-mentor`
+6. 리뷰 작성: `POST /posts/{post_id}/review` (항상 멘티 역할 사용자만 가능)
 
 추가 조회:
 
-- 게시글 전체/검색: `GET /posts`, `GET /posts?keyword=&major=`
+- 게시글 전체/검색: `GET /posts`, `GET /posts?keyword=&major=&role=`
 - 멘토 상세(연락처 포함): `GET /mentors/{mentor_id}`
 - 마이페이지 조회/수정(연락처 포함): `GET /me`, `PATCH /me`
 - 마이페이지 내 게시글 목록: `GET /me/posts`

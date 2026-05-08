@@ -77,7 +77,8 @@
 {
   "title": "백엔드 멘토링 필요",
   "description": "JWT, OAuth 구조",
-  "major": "컴퓨터공학"
+  "major": "컴퓨터공학",
+  "role": "MENTEE"
 }
 ```
 
@@ -86,6 +87,7 @@
 - Query
   - `keyword` (optional): 제목/설명/전공 통합 검색
   - `major` (optional): 전공 정확 일치
+  - `role` (optional): `MENTEE` 또는 `MENTOR` 역할 필터
 
 ### GET `/posts/{post_id}`
 - Header: `Authorization: Bearer <access_token>`
@@ -101,6 +103,10 @@
 ### GET `/posts/{post_id}/applications`
 - Header: `Authorization: Bearer <access_token>`
 - 작성자만 조회 가능
+
+### POST `/posts/{post_id}/review`
+- Header: `Authorization: Bearer <access_token>`
+- 게시글 role 기준으로 `멘티 역할 사용자`만 리뷰 작성 가능
 
 ## Mentor
 
@@ -141,6 +147,7 @@
       "title": "리액트에 대해 알려주세요!",
       "image_url": "https://example.com/images/react-post.png",
       "major": "Frontend",
+      "role": "MENTEE",
       "author_name": "오찬영",
       "created_at": "2026-04-28T11:00:00",
       "view_count": 0

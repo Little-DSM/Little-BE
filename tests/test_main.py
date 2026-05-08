@@ -42,6 +42,7 @@ def test_create_and_get_post() -> None:
                 "image_url": "https://example.com/images/backend-review.png",
                 "description": "SQLAlchemy 구조 피드백을 받고 싶어요.",
                 "major": "컴퓨터공학",
+                "role": "MENTEE",
             },
             headers=headers,
         )
@@ -54,6 +55,7 @@ def test_create_and_get_post() -> None:
     assert detail_response.status_code == 200
     assert detail_response.json()["title"] == "백엔드 코드 리뷰가 필요합니다"
     assert detail_response.json()["image_url"] == "https://example.com/images/backend-review.png"
+    assert detail_response.json()["role"] == "MENTEE"
     assert detail_response.json()["author"]["id"] == 1
 
 
@@ -70,6 +72,7 @@ def test_create_post_with_long_image_url() -> None:
                 "image_url": long_image_url,
                 "description": "긴 이미지 URL 저장 테스트",
                 "major": "컴퓨터공학",
+                "role": "MENTEE",
             },
             headers=headers,
         )
@@ -85,12 +88,32 @@ def test_create_post_requires_title() -> None:
 
         response = client.post(
             "/posts",
-            json={"title": "   ", "description": "설명", "major": "컴퓨터공학"},
+            json={
+                "title": "   ",
+                "description": "설명",
+                "major": "컴퓨터공학",
+                "role": "MENTEE",
+            },
             headers=headers,
         )
 
     assert response.status_code == 422
     assert response.json() == {"detail": "제목을 입력해주세요"}
+
+
+def test_create_post_requires_role() -> None:
+    with TestClient(app) as client:
+        token = get_token(client, user_id=1)
+        headers = {"Authorization": f"Bearer {token}"}
+
+        response = client.post(
+            "/posts",
+            json={"title": "역할 누락", "description": "설명", "major": "컴퓨터공학"},
+            headers=headers,
+        )
+
+    assert response.status_code == 422
+    assert response.json() == {"detail": "역할 값을 입력해주세요"}
 
 
 def test_validation_error_is_pre_handled_for_required_field() -> None:
@@ -295,6 +318,7 @@ def test_post_search() -> None:
                 "title": "React 멘토링 요청",
                 "description": "프론트엔드 상태관리 고민",
                 "major": "소프트웨어공학",
+                "role": "MENTEE",
             },
             headers=headers,
         )
@@ -303,6 +327,50 @@ def test_post_search() -> None:
         search_response = client.get("/posts", params={"keyword": "React"}, headers=headers)
         assert search_response.status_code == 200
         assert any("React" in post["title"] for post in search_response.json())
+
+
+def test_post_list_can_filter_by_role() -> None:
+    with TestClient(app) as client:
+        mentee_token = get_token(client, user_id=1)
+        mentor_token = get_token(client, user_id=2)
+        mentee_headers = {"Authorization": f"Bearer {mentee_token}"}
+        mentor_headers = {"Authorization": f"Bearer {mentor_token}"}
+
+        assert (
+            client.post(
+                "/posts",
+                json={
+                    "title": "멘티 게시글 필터 테스트",
+                    "description": "멘티 게시글",
+                    "major": "컴퓨터공학",
+                    "role": "MENTEE",
+                },
+                headers=mentee_headers,
+            ).status_code
+            == 201
+        )
+        assert (
+            client.post(
+                "/posts",
+                json={
+                    "title": "멘토 게시글 필터 테스트",
+                    "description": "멘토 게시글",
+                    "major": "컴퓨터공학",
+                    "role": "MENTOR",
+                },
+                headers=mentor_headers,
+            ).status_code
+            == 201
+        )
+
+        mentee_role_posts = client.get("/posts", params={"role": "MENTEE"}, headers=mentee_headers)
+        assert mentee_role_posts.status_code == 200
+        assert all(post["role"] == "MENTEE" for post in mentee_role_posts.json())
+
+        mentor_role_posts = client.get("/posts", params={"role": "MENTOR"}, headers=mentee_headers)
+        assert mentor_role_posts.status_code == 200
+        assert any(post["title"] == "멘토 게시글 필터 테스트" for post in mentor_role_posts.json())
+        assert all(post["role"] == "MENTOR" for post in mentor_role_posts.json())
 
 
 def test_get_mentor_detail() -> None:
@@ -335,6 +403,7 @@ def test_apply_and_select_mentor_flow() -> None:
                 "title": "자료구조 멘토링 원해요",
                 "description": "트리/그래프를 집중적으로 배우고 싶어요",
                 "major": "컴퓨터공학",
+                "role": "MENTEE",
             },
             headers=mentee_headers,
         )
@@ -407,6 +476,7 @@ def test_rating_is_reflected_on_mentor_profile() -> None:
                 "title": "운영체제 멘토링 받고 싶어요",
                 "description": "스케줄링과 동기화 개념을 배우고 싶습니다.",
                 "major": "컴퓨터공학",
+                "role": "MENTEE",
             },
             headers=mentee_headers,
         )
@@ -437,6 +507,55 @@ def test_rating_is_reflected_on_mentor_profile() -> None:
         assert mentor_detail_response.json()["rating_count"] >= 1
 
 
+def test_only_mentee_role_can_write_review_for_mentor_post() -> None:
+    with TestClient(app) as client:
+        mentee_pair = get_token_pair(client, user_id=1)
+        mentor_pair = get_token_pair(client, user_id=2)
+
+        mentee_headers = {"Authorization": f"Bearer {mentee_pair['access_token']}"}
+        mentor_headers = {"Authorization": f"Bearer {mentor_pair['access_token']}"}
+
+        create_post_response = client.post(
+            "/posts",
+            json={
+                "title": "멘토가 올린 게시글",
+                "description": "함께 공부할 멘티를 찾습니다.",
+                "major": "Backend",
+                "role": "MENTOR",
+            },
+            headers=mentor_headers,
+        )
+        assert create_post_response.status_code == 201
+        post_id = create_post_response.json()["id"]
+
+        assert client.post(f"/posts/{post_id}/apply", headers=mentee_headers).status_code == 201
+        assert (
+            client.post(
+                f"/posts/{post_id}/select-mentor",
+                json={"mentor_id": 1},
+                headers=mentor_headers,
+            ).status_code
+            == 200
+        )
+
+        author_review_response = client.post(
+            f"/posts/{post_id}/review",
+            json={"rating": 5, "comment": "작성자 본인 리뷰 시도"},
+            headers=mentor_headers,
+        )
+        assert author_review_response.status_code == 403
+        assert author_review_response.json() == {"detail": "멘티만 리뷰를 작성할 수 있습니다"}
+
+        mentee_review_response = client.post(
+            f"/posts/{post_id}/review",
+            json={"rating": 4, "comment": "멘티 역할에서 남긴 리뷰"},
+            headers=mentee_headers,
+        )
+        assert mentee_review_response.status_code == 200
+        assert mentee_review_response.json()["mentee_id"] == 1
+        assert mentee_review_response.json()["mentor_id"] == 2
+
+
 def test_get_mentor_reviews_summary() -> None:
     with TestClient(app) as client:
         mentee_pair = get_token_pair(client, user_id=1)
@@ -452,6 +571,7 @@ def test_get_mentor_reviews_summary() -> None:
                 "image_url": "https://example.com/images/ds-mentoring.png",
                 "description": "트리와 그래프를 같이 보고 싶어요.",
                 "major": "컴퓨터공학",
+                "role": "MENTEE",
             },
             headers=mentee_headers,
         )
@@ -500,6 +620,7 @@ def test_get_my_mentoring_progress_with_status_and_contact() -> None:
                 "title": "진행중 멘토링",
                 "description": "리뷰 전 상태를 확인하려고 합니다.",
                 "major": "Frontend",
+                "role": "MENTEE",
             },
             headers=mentee_headers,
         )
@@ -528,6 +649,7 @@ def test_get_my_mentoring_progress_with_status_and_contact() -> None:
                 "title": "완료 멘토링",
                 "description": "리뷰 완료 상태를 확인하려고 합니다.",
                 "major": "Backend",
+                "role": "MENTEE",
             },
             headers=mentee_headers,
         )
@@ -603,6 +725,7 @@ def test_mentor_can_check_progress_when_role_filter_is_mentor() -> None:
                 "title": "역할 필터 테스트",
                 "description": "멘토/멘티 진행상황 조회 역할 테스트",
                 "major": "Backend",
+                "role": "MENTEE",
             },
             headers=mentee_headers,
         )
@@ -632,6 +755,65 @@ def test_mentor_can_check_progress_when_role_filter_is_mentor() -> None:
         assert target_items[0]["counterpart_name"]
 
 
+def test_progress_role_is_resolved_by_post_role() -> None:
+    with TestClient(app) as client:
+        mentee_pair = get_token_pair(client, user_id=1)
+        mentor_pair = get_token_pair(client, user_id=2)
+        mentee_headers = {"Authorization": f"Bearer {mentee_pair['access_token']}"}
+        mentor_headers = {"Authorization": f"Bearer {mentor_pair['access_token']}"}
+
+        create_post_response = client.post(
+            "/posts",
+            json={
+                "title": "멘토 게시글 진행상황 테스트",
+                "description": "멘토가 작성한 글에서 역할 매핑을 확인합니다.",
+                "major": "Backend",
+                "role": "MENTOR",
+            },
+            headers=mentor_headers,
+        )
+        assert create_post_response.status_code == 201
+        post_id = create_post_response.json()["id"]
+
+        assert client.post(f"/posts/{post_id}/apply", headers=mentee_headers).status_code == 201
+        assert (
+            client.post(
+                f"/posts/{post_id}/select-mentor",
+                json={"mentor_id": 1},
+                headers=mentor_headers,
+            ).status_code
+            == 200
+        )
+
+        mentee_progress = client.get(
+            "/me/mentoring-progress",
+            params={"role": "mentee"},
+            headers=mentee_headers,
+        )
+        assert mentee_progress.status_code == 200
+        mentee_items = [
+            item for item in mentee_progress.json()["items"] if item["post_id"] == post_id
+        ]
+        assert len(mentee_items) == 1
+        assert mentee_items[0]["my_role"] == "MENTEE"
+        assert mentee_items[0]["mentor_id"] == 2
+        assert mentee_items[0]["counterpart_id"] == 2
+
+        mentor_progress = client.get(
+            "/me/mentoring-progress",
+            params={"role": "mentor"},
+            headers=mentor_headers,
+        )
+        assert mentor_progress.status_code == 200
+        mentor_items = [
+            item for item in mentor_progress.json()["items"] if item["post_id"] == post_id
+        ]
+        assert len(mentor_items) == 1
+        assert mentor_items[0]["my_role"] == "MENTOR"
+        assert mentor_items[0]["mentor_id"] == 2
+        assert mentor_items[0]["counterpart_id"] == 1
+
+
 def test_get_my_posts_only_returns_current_user_posts() -> None:
     with TestClient(app) as client:
         my_token = get_token(client, user_id=1)
@@ -646,6 +828,7 @@ def test_get_my_posts_only_returns_current_user_posts() -> None:
                 "image_url": "https://example.com/images/my-a.png",
                 "description": "내가 작성한 첫 번째 글",
                 "major": "Frontend",
+                "role": "MENTEE",
             },
             headers=my_headers,
         )
@@ -658,6 +841,7 @@ def test_get_my_posts_only_returns_current_user_posts() -> None:
                 "image_url": "https://example.com/images/my-b.png",
                 "description": "내가 작성한 두 번째 글",
                 "major": "Backend",
+                "role": "MENTEE",
             },
             headers=my_headers,
         )
@@ -669,6 +853,7 @@ def test_get_my_posts_only_returns_current_user_posts() -> None:
                 "title": "다른 사람 글",
                 "description": "내 글 목록에 보이면 안됨",
                 "major": "AI",
+                "role": "MENTEE",
             },
             headers=other_headers,
         )
@@ -685,3 +870,4 @@ def test_get_my_posts_only_returns_current_user_posts() -> None:
         assert "내 게시글 B" in titles
         assert "다른 사람 글" not in titles
         assert all(item["author_name"] for item in body["items"])
+        assert all(item["role"] in {"MENTEE", "MENTOR"} for item in body["items"])
