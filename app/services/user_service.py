@@ -1,8 +1,15 @@
 from fastapi import HTTPException, status
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session, aliased
 
-from app.models import MentoringApplication, MentoringMatch, MentoringPost, MentoringReview, User
+from app.models import (
+    MentoringApplication,
+    MentoringMatch,
+    MentoringPost,
+    MentoringReview,
+    PostRole,
+    User,
+)
 from app.schemas.review import MentorReviewItem, MentorReviewSummaryResponse, RatingDistribution
 from app.schemas.user import (
     MentorDetailResponse,
@@ -94,36 +101,71 @@ class UserService:
             .order_by(MentoringMatch.selected_at.desc())
         )
         if role_filter == "mentee":
-            stmt = stmt.where(MentoringPost.author_id == user.id)
+            stmt = stmt.where(
+                or_(
+                    and_(
+                        MentoringPost.role == PostRole.MENTEE,
+                        MentoringPost.author_id == user.id,
+                    ),
+                    and_(
+                        MentoringPost.role == PostRole.MENTOR,
+                        MentoringMatch.mentor_id == user.id,
+                    ),
+                )
+            )
         if role_filter == "mentor":
-            stmt = stmt.where(MentoringMatch.mentor_id == user.id)
+            stmt = stmt.where(
+                or_(
+                    and_(
+                        MentoringPost.role == PostRole.MENTEE,
+                        MentoringMatch.mentor_id == user.id,
+                    ),
+                    and_(
+                        MentoringPost.role == PostRole.MENTOR,
+                        MentoringPost.author_id == user.id,
+                    ),
+                )
+            )
 
         rows = self.db.execute(stmt).all()
         items: list[MentoringProgressItem] = []
 
         for match, post, mentor, author, review in rows:
             is_completed = review is not None
-            status = "COMPLETED" if is_completed else "IN_PROGRESS"
+            progress_status = "COMPLETED" if is_completed else "IN_PROGRESS"
             if status_filter == "completed" and not is_completed:
                 continue
             if status_filter == "in_progress" and is_completed:
                 continue
-            is_mentee = post.author_id == user.id
-            counterpart = mentor if is_mentee else author
+
+            if post.role == PostRole.MENTEE:
+                mentor_user = mentor
+                mentee_user = author
+            elif post.role == PostRole.MENTOR:
+                mentor_user = author
+                mentee_user = mentor
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="게시글 role 값이 올바르지 않습니다",
+                )
+
+            is_mentee = user.id == mentee_user.id
+            counterpart = mentor_user if is_mentee else mentee_user
 
             items.append(
                 MentoringProgressItem(
                     post_id=post.id,
                     title=post.title,
                     major=post.major,
-                    mentor_id=mentor.id,
-                    mentor_name=mentor.name,
-                    mentor_contact=mentor.contact or "연락처 미등록",
+                    mentor_id=mentor_user.id,
+                    mentor_name=mentor_user.name,
+                    mentor_contact=mentor_user.contact or "연락처 미등록",
                     my_role="MENTEE" if is_mentee else "MENTOR",
                     counterpart_id=counterpart.id,
                     counterpart_name=counterpart.name,
                     counterpart_contact=counterpart.contact or "연락처 미등록",
-                    status=status,
+                    status=progress_status,
                     selected_at=match.selected_at,
                     completed_at=review.created_at if review else None,
                 )
@@ -145,6 +187,7 @@ class UserService:
                 title=post.title,
                 image_url=post.image_url,
                 major=post.major,
+                role=post.role,
                 author_name=user.name,
                 created_at=post.created_at,
                 view_count=0,

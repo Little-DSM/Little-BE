@@ -3,6 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models import PostRole
+
 
 class UserSummary(BaseModel):
     model_config = ConfigDict(
@@ -193,6 +195,7 @@ class MyPostListItem(BaseModel):
                 "title": "리액트에 대해 알려주세요!",
                 "image_url": "https://example.com/images/react-post.png",
                 "major": "Frontend",
+                "role": "MENTEE",
                 "author_name": "오찬영",
                 "created_at": "2026-04-28T11:00:00",
                 "view_count": 0,
@@ -204,6 +207,7 @@ class MyPostListItem(BaseModel):
     title: str = Field(..., description="게시글 제목")
     image_url: str | None = Field(default=None, description="게시글 이미지 URL")
     major: str = Field(..., description="멘토링 전공")
+    role: PostRole = Field(..., description="게시글 역할(MENTEE/MENTOR)")
     author_name: str = Field(..., description="작성자 이름")
     created_at: datetime = Field(..., description="게시글 작성 시각")
     view_count: int = Field(default=0, description="조회수(현재 기본값 0)")
@@ -220,6 +224,7 @@ class MyPostListResponse(BaseModel):
                         "title": "리액트에 대해 알려주세요!",
                         "image_url": "https://example.com/images/react-post.png",
                         "major": "Frontend",
+                        "role": "MENTEE",
                         "author_name": "오찬영",
                         "created_at": "2026-04-28T11:00:00",
                         "view_count": 0,
