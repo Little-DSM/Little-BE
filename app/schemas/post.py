@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.models import PostRole
 from app.schemas.user import MentorApplicationSummary, UserSummary
 
 
@@ -19,6 +20,7 @@ class MentoringPostCreate(BaseModel):
                 "image_url": "https://example.com/images/mentoring-request.png",
                 "description": "JWT 인증과 SQLAlchemy 구조 설계에 대한 멘토링이 필요합니다.",
                 "major": "컴퓨터공학",
+                "role": "MENTEE",
             }
         }
     )
@@ -27,6 +29,7 @@ class MentoringPostCreate(BaseModel):
     image_url: str | None = Field(default=None, description="멘토링 게시글 대표 이미지 URL")
     description: str | None = Field(default=None, description="멘토링 상세 설명")
     major: str = Field(..., description="원하는 멘토 전공")
+    role: PostRole = Field(..., description="게시글 역할(MENTEE: 멘티 글, MENTOR: 멘토 글)")
 
     @field_validator("title")
     @classmethod
@@ -77,6 +80,7 @@ class MentoringPostListItem(BaseModel):
                 "image_url": "https://example.com/images/post-sample.png",
                 "description": "FastAPI 프로젝트 구조와 인증 설계를 배우고 싶습니다.",
                 "major": "컴퓨터공학",
+                "role": "MENTEE",
                 "created_at": "2026-03-16T14:00:00",
             }
         },
@@ -87,6 +91,7 @@ class MentoringPostListItem(BaseModel):
     image_url: str | None = Field(default=None, description="게시글 대표 이미지 URL")
     description: str | None = Field(default=None, description="게시글 상세 설명")
     major: str = Field(..., description="원하는 전공")
+    role: PostRole = Field(..., description="게시글 역할(MENTEE/MENTOR)")
     created_at: datetime = Field(..., description="게시글 생성 시각")
 
 
@@ -100,6 +105,7 @@ class MentoringPostDetail(BaseModel):
                 "image_url": "https://example.com/images/post-sample.png",
                 "description": "FastAPI 프로젝트 구조와 인증 설계를 배우고 싶습니다.",
                 "major": "컴퓨터공학",
+                "role": "MENTEE",
                 "created_at": "2026-03-16T14:00:00",
                 "author": {
                     "id": 1,
@@ -115,6 +121,7 @@ class MentoringPostDetail(BaseModel):
     image_url: str | None = Field(default=None, description="게시글 대표 이미지 URL")
     description: str | None = Field(default=None, description="게시글 상세 설명")
     major: str = Field(..., description="원하는 전공")
+    role: PostRole = Field(..., description="게시글 역할(MENTEE/MENTOR)")
     created_at: datetime = Field(..., description="게시글 생성 시각")
     author: UserSummary = Field(..., description="게시글 작성자 정보")
 
@@ -150,7 +157,7 @@ class MentorSelectRequest(BaseModel):
         }
     )
 
-    mentor_id: int = Field(..., description="확정할 멘토 사용자 ID")
+    mentor_id: int = Field(..., description="확정할 지원자 사용자 ID")
 
 
 class MentorSelectResponse(BaseModel):
@@ -171,7 +178,7 @@ class MentorSelectResponse(BaseModel):
     )
 
     post_id: int = Field(..., description="게시글 ID")
-    mentor: MentorApplicationSummary = Field(..., description="확정된 멘토")
+    mentor: MentorApplicationSummary = Field(..., description="확정된 지원자 정보")
     selected_at: datetime = Field(..., description="멘토 확정 시각")
 
 

@@ -1,10 +1,16 @@
 from datetime import datetime
+from enum import Enum
 
 from sqlalchemy import ForeignKey, String, Text, func
 from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.session import Base
+
+
+class PostRole(str, Enum):
+    MENTEE = "MENTEE"
+    MENTOR = "MENTOR"
 
 
 class MentoringPost(Base):
@@ -18,6 +24,12 @@ class MentoringPost(Base):
     )
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     major: Mapped[str] = mapped_column(String(100), nullable=False)
+    role: Mapped[PostRole] = mapped_column(
+        String(20),
+        nullable=False,
+        default=PostRole.MENTEE,
+        server_default=PostRole.MENTEE.value,
+    )
     author_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
 

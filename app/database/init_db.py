@@ -2,7 +2,7 @@ from sqlalchemy import inspect, select, text
 from sqlalchemy.orm import Session
 
 from app.database.session import Base, engine
-from app.models import MentoringApplication, MentoringPost, User
+from app.models import MentoringApplication, MentoringPost, PostRole, User
 
 
 def init_db() -> None:
@@ -11,6 +11,7 @@ def init_db() -> None:
     _ensure_user_contact_column()
     _ensure_user_introduction_column()
     _ensure_post_image_column()
+    _ensure_post_role_column()
 
     with Session(engine) as session:
         if session.execute(select(User.id)).first():
@@ -51,6 +52,7 @@ def init_db() -> None:
             image_url="https://example.com/images/post-sample.png",
             description="FastAPI 프로젝트 구조와 인증 설계를 배우고 싶습니다.",
             major="컴퓨터공학",
+            role=PostRole.MENTEE,
             author_id=mentee.id,
         )
         session.add(post)
@@ -124,3 +126,27 @@ def _ensure_post_image_column() -> None:
 
     with engine.begin() as connection:
         connection.execute(text("ALTER TABLE mentoring_posts MODIFY COLUMN image_url LONGTEXT"))
+
+
+def _ensure_post_role_column() -> None:
+    inspector = inspect(engine)
+    post_columns = {column["name"] for column in inspector.get_columns("mentoring_posts")}
+    if "role" in post_columns:
+        return
+
+    dialect_name = engine.dialect.name
+    with engine.begin() as connection:
+        if dialect_name == "mysql":
+            connection.execute(
+                text(
+                    "ALTER TABLE mentoring_posts "
+                    "ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'MENTEE'"
+                )
+            )
+        else:
+            connection.execute(
+                text(
+                    "ALTER TABLE mentoring_posts "
+                    "ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'MENTEE'"
+                )
+            )

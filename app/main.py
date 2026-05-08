@@ -58,6 +58,7 @@ def _resolve_field_name(loc: tuple[str | int, ...] | list[str | int]) -> str:
     field_map = {
         "title": "제목",
         "major": "전공",
+        "role": "역할",
         "description": "설명",
         "image_url": "이미지 URL",
         "user_id": "사용자 ID",
@@ -101,6 +102,10 @@ def _format_validation_message(exc: RequestValidationError) -> str:
     if message.startswith("Input should be greater than or equal to "):
         limit = message.replace("Input should be greater than or equal to ", "", 1)
         return f"{field_name}은(는) {limit} 이상으로 입력해주세요"
+
+    if message.startswith("Input should be '"):
+        allowed_values = message.replace("Input should be ", "", 1)
+        return f"{field_name}은(는) {allowed_values} 중 하나여야 합니다"
 
     if message == "JSON decode error":
         return "요청 본문 JSON 형식이 올바르지 않습니다"

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
 from app.database.session import get_db
-from app.models import User
+from app.models import PostRole, User
 from app.schemas.common import ErrorResponse
 from app.schemas.post import (
     MentorApplicationsResponse,
@@ -27,7 +27,7 @@ router = APIRouter(prefix="/posts", tags=["posts"])
     response_model=MentoringPostDetail,
     status_code=status.HTTP_201_CREATED,
     summary="멘토링 게시글 생성",
-    description="로그인한 사용자가 멘토링 요청 게시글을 생성합니다.",
+    description="로그인한 사용자가 role(MENTEE/MENTOR)을 지정하여 멘토링 게시글을 생성합니다.",
     responses={
         201: {"description": "게시글 생성 성공"},
         401: {"model": ErrorResponse, "description": "인증 실패"},
@@ -56,11 +56,12 @@ def create_post(
 def list_posts(
     keyword: str | None = Query(default=None, description="제목/설명/전공 통합 검색어"),
     major: str | None = Query(default=None, description="전공 정확 일치 필터"),
+    role: PostRole | None = Query(default=None, description="게시글 역할 필터(MENTEE/MENTOR)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[MentoringPostListItem]:
     del current_user
-    posts = PostService(db).list_posts(keyword=keyword, major=major)
+    posts = PostService(db).list_posts(keyword=keyword, major=major, role=role)
     return [MentoringPostListItem.model_validate(post) for post in posts]
 
 
@@ -156,10 +157,13 @@ def get_applications(
 @router.post(
     "/{post_id}/apply",
     status_code=status.HTTP_201_CREATED,
-    summary="멘토 지원",
-    description="로그인한 사용자가 멘토로 게시글에 지원합니다.",
+    summary="게시글 지원",
+    description=(
+        "로그인한 사용자가 게시글에 지원합니다. "
+        "(MENTEE 글에는 멘토, MENTOR 글에는 멘티가 지원)"
+    ),
     responses={
-        201: {"description": "멘토 지원 성공"},
+        201: {"description": "게시글 지원 성공"},
         400: {"model": ErrorResponse, "description": "중복 지원 또는 본인 게시글 지원"},
         401: {"model": ErrorResponse, "description": "인증 실패"},
         404: {"model": ErrorResponse, "description": "게시글을 찾을 수 없음"},
@@ -177,8 +181,8 @@ def apply_to_post(
 @router.post(
     "/{post_id}/select-mentor",
     response_model=MentorSelectResponse,
-    summary="멘토 확정",
-    description="게시글 작성자인 멘티가 지원자 중 멘토를 최종 확정합니다.",
+    summary="지원자 확정",
+    description="게시글 작성자가 지원자 중 한 명을 최종 확정합니다.",
     responses={
         200: {"description": "멘토 확정 성공"},
         400: {"model": ErrorResponse, "description": "지원하지 않은 멘토 선택"},
@@ -204,8 +208,8 @@ def select_mentor(
 @router.get(
     "/{post_id}/selected-mentor",
     response_model=MentorSelectResponse,
-    summary="확정 멘토 조회",
-    description="게시글 작성자인 멘티가 최종 확정한 멘토를 조회합니다.",
+    summary="확정 지원자 조회",
+    description="게시글 작성자가 최종 확정한 지원자를 조회합니다.",
     responses={
         200: {"description": "확정 멘토 조회 성공"},
         401: {"model": ErrorResponse, "description": "인증 실패"},
@@ -230,12 +234,15 @@ def get_selected_mentor(
     "/{post_id}/review",
     response_model=ReviewResponse,
     summary="멘토 별점 등록",
-    description="게시글 작성자인 멘티가 확정된 멘토에게 별점/리뷰를 남깁니다.",
+    description=(
+        "게시글 role 기준으로 멘티 역할 사용자만 "
+        "확정된 멘토에게 별점/리뷰를 남길 수 있습니다."
+    ),
     responses={
         200: {"description": "별점 등록 성공"},
         400: {"model": ErrorResponse, "description": "멘토 확정 전 리뷰 등록 시도"},
         401: {"model": ErrorResponse, "description": "인증 실패"},
-        403: {"model": ErrorResponse, "description": "작성자 권한 없음"},
+        403: {"model": ErrorResponse, "description": "멘티 역할 사용자 아님"},
         404: {"model": ErrorResponse, "description": "게시글을 찾을 수 없음"},
     },
 )
