@@ -81,6 +81,7 @@ class MyPageResponse(BaseModel):
                 "id": 1,
                 "name": "김멘티",
                 "email": "mentee@example.com",
+                "contact": "010-1111-1111",
                 "introduction": "백엔드 개발자로 성장하고 싶은 멘티입니다.",
                 "profile_image": "https://example.com/images/mentee.png",
                 "major": "컴퓨터공학",
@@ -93,6 +94,7 @@ class MyPageResponse(BaseModel):
     id: int = Field(..., description="사용자 ID")
     name: str = Field(..., description="이름")
     email: str | None = Field(default=None, description="이메일")
+    contact: str | None = Field(default=None, description="연락처")
     introduction: str | None = Field(default=None, description="자기소개")
     profile_image: str | None = Field(default=None, description="프로필 이미지 URL")
     major: str = Field(..., description="전공")
@@ -105,6 +107,7 @@ class MyPageUpdateRequest(BaseModel):
         json_schema_extra={
             "example": {
                 "name": "김멘티",
+                "contact": "010-1111-1111",
                 "introduction": "백엔드 개발자로 성장하고 싶은 멘티입니다.",
                 "profile_image": "https://example.com/images/my-profile.png",
                 "major": "컴퓨터공학",
@@ -113,6 +116,7 @@ class MyPageUpdateRequest(BaseModel):
     )
 
     name: str = Field(..., description="수정할 이름", min_length=1)
+    contact: str | None = Field(default=None, description="수정할 연락처", max_length=100)
     introduction: str | None = Field(default=None, description="수정할 자기소개")
     profile_image: str | None = Field(default=None, description="수정할 프로필 이미지 URL")
     major: str = Field(..., description="수정할 전공", min_length=1)

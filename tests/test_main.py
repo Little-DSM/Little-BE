@@ -366,6 +366,7 @@ def test_my_page_get_and_update() -> None:
         assert get_response.status_code == 200
         assert get_response.json()["id"] == 1
         assert "email" in get_response.json()
+        assert "contact" in get_response.json()
         assert "introduction" in get_response.json()
         assert "profile_image" in get_response.json()
         assert "major" in get_response.json()
@@ -376,6 +377,7 @@ def test_my_page_get_and_update() -> None:
             "/me",
             json={
                 "name": "업데이트멘티",
+                "contact": "010-9999-9999",
                 "introduction": "자기소개를 업데이트했습니다.",
                 "profile_image": "https://example.com/images/updated-profile.png",
                 "major": "소프트웨어공학",
@@ -385,6 +387,7 @@ def test_my_page_get_and_update() -> None:
         assert update_response.status_code == 200
         body = update_response.json()
         assert body["name"] == "업데이트멘티"
+        assert body["contact"] == "010-9999-9999"
         assert body["introduction"] == "자기소개를 업데이트했습니다."
         assert body["profile_image"] == "https://example.com/images/updated-profile.png"
         assert body["major"] == "소프트웨어공학"

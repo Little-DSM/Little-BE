@@ -110,6 +110,24 @@
 
 ## My Page
 
+### GET `/me`
+- Header: `Authorization: Bearer <access_token>`
+- 로그인한 사용자 마이페이지 조회 (이름/이메일/연락처/자기소개/프로필/전공)
+
+### PATCH `/me`
+- Header: `Authorization: Bearer <access_token>`
+- 로그인한 사용자 마이페이지 수정
+- Request
+```json
+{
+  "name": "김멘티",
+  "contact": "010-1111-1111",
+  "introduction": "백엔드 개발자로 성장하고 싶은 멘티입니다.",
+  "profile_image": "https://example.com/images/my-profile.png",
+  "major": "컴퓨터공학"
+}
+```
+
 ### GET `/me/posts`
 - Header: `Authorization: Bearer <access_token>`
 - 로그인한 사용자가 작성한 게시글 목록 조회

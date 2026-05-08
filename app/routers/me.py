@@ -22,7 +22,7 @@ router = APIRouter(prefix="/me", tags=["me"])
     "",
     response_model=MyPageResponse,
     summary="내 마이페이지 조회",
-    description="로그인한 사용자의 이름, 자기소개, 프로필 이미지, 전공을 조회합니다.",
+    description="로그인한 사용자의 이름, 연락처, 자기소개, 프로필 이미지, 전공을 조회합니다.",
     responses={
         200: {"description": "마이페이지 조회 성공"},
         401: {"model": ErrorResponse, "description": "인증 실패"},
@@ -39,7 +39,7 @@ def get_my_profile(
     "",
     response_model=MyPageResponse,
     summary="내 마이페이지 수정",
-    description="로그인한 사용자의 이름, 자기소개, 프로필 이미지, 전공을 수정합니다.",
+    description="로그인한 사용자의 이름, 연락처, 자기소개, 프로필 이미지, 전공을 수정합니다.",
     responses={
         200: {"description": "마이페이지 수정 성공"},
         401: {"model": ErrorResponse, "description": "인증 실패"},

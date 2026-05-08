@@ -52,6 +52,7 @@ class UserService:
             id=user.id,
             name=user.name,
             email=user.email,
+            contact=user.contact,
             introduction=user.introduction,
             profile_image=user.profile_image,
             major=user.major,
@@ -61,6 +62,7 @@ class UserService:
 
     def update_my_profile(self, user: User, payload: MyPageUpdateRequest) -> MyPageResponse:
         user.name = payload.name.strip()
+        user.contact = payload.contact.strip() if payload.contact else None
         user.introduction = payload.introduction.strip() if payload.introduction else None
         user.profile_image = payload.profile_image.strip() if payload.profile_image else None
         user.major = payload.major.strip()
