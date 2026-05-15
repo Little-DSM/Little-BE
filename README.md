@@ -24,7 +24,8 @@ GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_REDIRECT_URI=http://127.0.0.1:8001/auth/google/callback
 GOOGLE_FRONTEND_REDIRECT_URI=http://localhost:5173/main
-GOOGLE_ALLOWED_FRONTEND_REDIRECT_URIS=https://little-fe.vercel.app/main,http://localhost:5173/main
+GOOGLE_ALLOWED_FRONTEND_REDIRECT_URIS=https://little-fe.vercel.app/main,http://localhost:5173/main,http://localhost:43123,http://localhost:43123/main
+CORS_ALLOWED_ORIGINS=http://localhost:43123
 
 JWT_SECRET_KEY=your-jwt-secret-key
 ACCESS_TOKEN_EXPIRE=120
@@ -38,6 +39,7 @@ REDIS_URL=redis://127.0.0.1:6379/0
 - `ACCESS_TOKEN_EXPIRE`: 분(minute) 단위
 - `REFRESH_TOKEN_EXPIRE`: 일(day) 단위
 - `GOOGLE_ALLOWED_FRONTEND_REDIRECT_URIS`: Google 로그인 완료 후 리다이렉트 가능한 프론트 URL 화이트리스트(콤마 구분)
+- `CORS_ALLOWED_ORIGINS`: CORS 허용 Origin 추가 목록(콤마 구분). 기본 허용값에 병합됩니다.
 
 ## 4. 서버 실행
 

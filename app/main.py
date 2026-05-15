@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
@@ -151,12 +152,25 @@ async def unhandled_exception_handler(_: Request, exc: Exception) -> JSONRespons
         content={"detail": "요청 처리 중 오류가 발생했습니다"},
     )
 
-allowed_origins = [
-    "http://localhost:5173",
-    "https://little-fe.vercel.app",
-    "https://little-fe.vercel.app/",
-    "https://little-orpin.vercel.app",
-]
+def _build_allowed_origins() -> list[str]:
+    defaults = [
+        "http://localhost:5173",
+        "http://localhost:43123",
+        "https://little-fe.vercel.app",
+        "https://little-fe.vercel.app/",
+        "https://little-orpin.vercel.app",
+    ]
+    raw = os.getenv("CORS_ALLOWED_ORIGINS", "")
+    if not raw.strip():
+        return defaults
+
+    extras = [origin.strip() for origin in raw.split(",") if origin.strip()]
+    merged = [*defaults, *extras]
+    # Keep order while removing duplicates
+    return list(dict.fromkeys(merged))
+
+
+allowed_origins = _build_allowed_origins()
 
 app.add_middleware(
     CORSMiddleware,

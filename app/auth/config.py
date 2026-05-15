@@ -15,6 +15,8 @@ def get_google_oauth_settings() -> GoogleOAuthSettings:
     default_allowed = (
         "https://little-fe.vercel.app/main",
         "http://localhost:5173/main",
+        "http://localhost:43123",
+        "http://localhost:43123/main",
     )
     raw_allowed = os.getenv("GOOGLE_ALLOWED_FRONTEND_REDIRECT_URIS", "")
     if raw_allowed.strip():
