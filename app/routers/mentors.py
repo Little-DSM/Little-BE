@@ -7,7 +7,8 @@ from app.models import User
 from app.schemas.common import ErrorResponse
 from app.schemas.review import MentorReviewSummaryResponse
 from app.schemas.user import MentorDetailResponse
-from app.services.user_service import UserService
+from app.services.dto import MentorQueryDTO
+from app.services.mentor_api_services import GetMentorDetailService, GetMentorReviewsService
 
 router = APIRouter(prefix="/mentors", tags=["mentors"])
 
@@ -29,7 +30,7 @@ def get_mentor_detail(
     current_user: User = Depends(get_current_user),
 ) -> MentorDetailResponse:
     del current_user
-    return UserService(db).get_mentor_detail(mentor_id)
+    return GetMentorDetailService(db).execute(MentorQueryDTO(mentor_id=mentor_id))
 
 
 @router.get(
@@ -52,4 +53,4 @@ def get_mentor_reviews(
     current_user: User = Depends(get_current_user),
 ) -> MentorReviewSummaryResponse:
     del current_user
-    return UserService(db).get_mentor_review_summary(mentor_id)
+    return GetMentorReviewsService(db).execute(MentorQueryDTO(mentor_id=mentor_id))
