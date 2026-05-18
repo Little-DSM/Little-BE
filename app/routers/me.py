@@ -13,7 +13,13 @@ from app.schemas.user import (
     MyPageUpdateRequest,
     MyPostListResponse,
 )
-from app.services.user_service import UserService
+from app.services.dto import MyMentoringProgressQueryDTO, MyPostsQueryDTO, MyProfileUpdateDTO
+from app.services.me_api_services import (
+    GetMyMentoringProgressService,
+    GetMyPostsService,
+    GetMyProfileService,
+    UpdateMyProfileService,
+)
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -32,7 +38,7 @@ def get_my_profile(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> MyPageResponse:
-    return UserService(db).get_my_profile(current_user)
+    return GetMyProfileService(db).execute(current_user.id)
 
 
 @router.patch(
@@ -51,7 +57,15 @@ def update_my_profile(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> MyPageResponse:
-    return UserService(db).update_my_profile(current_user, payload)
+    command = MyProfileUpdateDTO(
+        user_id=current_user.id,
+        name=payload.name,
+        contact=payload.contact,
+        introduction=payload.introduction,
+        profile_image=payload.profile_image,
+        major=payload.major,
+    )
+    return UpdateMyProfileService(db).execute(command)
 
 
 @router.get(
@@ -79,7 +93,12 @@ def get_my_mentoring_progress(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> MentoringProgressListResponse:
-    return UserService(db).get_my_mentoring_progress(current_user, status, role)
+    query = MyMentoringProgressQueryDTO(
+        user_id=current_user.id,
+        status_filter=status,
+        role_filter=role,
+    )
+    return GetMyMentoringProgressService(db).execute(query)
 
 
 @router.get(
@@ -96,4 +115,4 @@ def get_my_posts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> MyPostListResponse:
-    return UserService(db).get_my_posts(current_user)
+    return GetMyPostsService(db).execute(MyPostsQueryDTO(user_id=current_user.id))
