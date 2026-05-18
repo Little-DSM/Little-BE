@@ -17,7 +17,27 @@ from app.schemas.post import (
     ReviewResponse,
 )
 from app.schemas.user import MentorApplicationSummary
-from app.services.post_service import PostService
+from app.services.dto import (
+    PostApplyDTO,
+    PostCreateDTO,
+    PostListQueryDTO,
+    PostOwnershipDTO,
+    PostReviewUpsertDTO,
+    PostSelectMentorDTO,
+    PostUpdateDTO,
+)
+from app.services.post_api_services import (
+    ApplyToPostService,
+    CreatePostService,
+    DeletePostService,
+    GetPostApplicationsService,
+    GetPostService,
+    GetSelectedMentorService,
+    ListPostsService,
+    SelectMentorService,
+    UpdatePostService,
+    UpsertPostReviewService,
+)
 
 router = APIRouter(prefix="/posts", tags=["posts"])
 
@@ -39,7 +59,15 @@ def create_post(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> MentoringPostDetail:
-    post = PostService(db).create_post(payload, current_user)
+    command = PostCreateDTO(
+        author_id=current_user.id,
+        title=payload.title,
+        image_url=payload.image_url,
+        description=payload.description,
+        major=payload.major,
+        role=payload.role,
+    )
+    post = CreatePostService(db).execute(command)
     return MentoringPostDetail.model_validate(post)
 
 
@@ -61,7 +89,9 @@ def list_posts(
     current_user: User = Depends(get_current_user),
 ) -> list[MentoringPostListItem]:
     del current_user
-    posts = PostService(db).list_posts(keyword=keyword, major=major, role=role)
+    posts = ListPostsService(db).execute(
+        PostListQueryDTO(keyword=keyword, major=major, role=role)
+    )
     return [MentoringPostListItem.model_validate(post) for post in posts]
 
 
@@ -82,7 +112,7 @@ def get_post(
     current_user: User = Depends(get_current_user),
 ) -> MentoringPostDetail:
     del current_user
-    post = PostService(db).get_post(post_id)
+    post = GetPostService(db).execute(post_id)
     return MentoringPostDetail.model_validate(post)
 
 
@@ -105,7 +135,15 @@ def update_post(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> MentoringPostDetail:
-    post = PostService(db).update_post(post_id, payload, current_user)
+    command = PostUpdateDTO(
+        post_id=post_id,
+        user_id=current_user.id,
+        title=payload.title,
+        image_url=payload.image_url,
+        description=payload.description,
+        major=payload.major,
+    )
+    post = UpdatePostService(db).execute(command)
     return MentoringPostDetail.model_validate(post)
 
 
@@ -126,7 +164,7 @@ def delete_post(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Response:
-    PostService(db).delete_post(post_id, current_user)
+    DeletePostService(db).execute(PostOwnershipDTO(post_id=post_id, user_id=current_user.id))
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -147,7 +185,9 @@ def get_applications(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> MentorApplicationsResponse:
-    mentors = PostService(db).get_applications(post_id, current_user)
+    mentors = GetPostApplicationsService(db).execute(
+        PostOwnershipDTO(post_id=post_id, user_id=current_user.id)
+    )
     return MentorApplicationsResponse(
         post_id=post_id,
         mentors=[MentorApplicationSummary.model_validate(mentor) for mentor in mentors],
@@ -174,7 +214,9 @@ def apply_to_post(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> dict[str, str]:
-    PostService(db).apply_to_post(post_id, current_user)
+    ApplyToPostService(db).execute(
+        PostApplyDTO(post_id=post_id, applicant_id=current_user.id)
+    )
     return {"message": "멘토 지원이 완료되었습니다"}
 
 
@@ -197,7 +239,12 @@ def select_mentor(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> MentorSelectResponse:
-    match = PostService(db).select_mentor(post_id, payload.mentor_id, current_user)
+    command = PostSelectMentorDTO(
+        post_id=post_id,
+        selector_id=current_user.id,
+        mentor_id=payload.mentor_id,
+    )
+    match = SelectMentorService(db).execute(command)
     return MentorSelectResponse(
         post_id=post_id,
         mentor=MentorApplicationSummary.model_validate(match.mentor),
@@ -222,7 +269,9 @@ def get_selected_mentor(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> MentorSelectResponse:
-    match = PostService(db).get_selected_mentor(post_id, current_user)
+    match = GetSelectedMentorService(db).execute(
+        PostOwnershipDTO(post_id=post_id, user_id=current_user.id)
+    )
     return MentorSelectResponse(
         post_id=post_id,
         mentor=MentorApplicationSummary.model_validate(match.mentor),
@@ -252,11 +301,13 @@ def create_review(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ReviewResponse:
-    review = PostService(db).create_or_update_review(
-        post_id=post_id,
-        user=current_user,
-        rating=payload.rating,
-        comment=payload.comment,
+    review = UpsertPostReviewService(db).execute(
+        PostReviewUpsertDTO(
+            post_id=post_id,
+            reviewer_id=current_user.id,
+            rating=payload.rating,
+            comment=payload.comment,
+        )
     )
     return ReviewResponse(
         post_id=post_id,

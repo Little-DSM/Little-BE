@@ -125,10 +125,11 @@ def test_validation_error_is_pre_handled_for_required_field() -> None:
 
 
 def test_unhandled_exception_is_converted_to_400(monkeypatch) -> None:
-    def fake_list_posts(self, keyword=None, major=None):
+    def fake_list_posts(self, dto):
+        del dto
         raise RuntimeError("unexpected")
 
-    monkeypatch.setattr("app.services.post_service.PostService.list_posts", fake_list_posts)
+    monkeypatch.setattr("app.services.post_api_services.ListPostsService.execute", fake_list_posts)
 
     with TestClient(app, raise_server_exceptions=False) as client:
         token = get_token(client, user_id=1)
